@@ -1,0 +1,117 @@
+/* Layout: a cena em pixel art ocupa a tela inteira; o HUD fica preso nos cantos; os painéis são cartões de pedra
+   com moldura de bronze por cima do mundo vivo (as texturas vêm de js/00-texturas-ui.js). */
+:root{
+  color-scheme: dark;
+  --void:#0b0a10;
+  --slate:#17131c;
+  --slate-2:#221c29;
+  --line:#3b3245;
+  --parch:#efe2c4;
+  --dim:#a8997f;
+  --ember:#f0a83c;
+  --ember-dk:#7a4a14;
+  --blood:#d23b3b;
+  --moss:#9fd65a;
+  --sky:#7fc8e8;
+  --font-title:"Slow Pixel", monospace;
+  --font-ui:"Slow Pixel", monospace;
+  --r-comum:#c9c2b0;
+  --r-incomum:#7fd35a;
+  --r-raro:#58a6ff;
+  --r-epico:#c27cff;
+  --r-lendario:#ffb23f;
+}
+[hidden]{display:none!important}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;overflow:hidden;background:var(--void);color:var(--parch)}
+body{font-family:var(--font-ui);font-size:12px;-webkit-font-smoothing:none;font-synthesis:none;user-select:none;-webkit-user-select:none}
+#screen{position:fixed;inset:0;width:100%;height:100%;display:block;image-rendering:pixelated;background:var(--void);cursor:pointer;touch-action:none}
+
+.ico{display:inline-block;width:32px;height:32px;background:center/contain no-repeat;image-rendering:pixelated;flex:none}
+.ico.sm{width:20px;height:20px}
+
+/* ===== HUD ===== */
+#hud{position:fixed;inset:0;pointer-events:none;z-index:25}
+body.com-painel #pescaInfo,body.com-painel #buffs{display:none}
+#hud .panel,#hud button{pointer-events:auto}
+.panel{background:rgba(14,11,18,.78);border:2px solid #000;box-shadow:inset 0 0 0 2px var(--line),0 3px 0 rgba(0,0,0,.45)}
+.topo-esq{position:absolute;left:calc(12px + env(safe-area-inset-left,0px));top:calc(12px + env(safe-area-inset-top,0px));padding:8px 12px;display:grid;gap:4px}
+.moedas{display:flex;align-items:center;gap:6px;font-size:18px;font-weight:800;font-variant-numeric:tabular-nums;color:#ffd98a;text-shadow:2px 2px 0 #000}
+.moedas .ico{width:20px;height:20px}
+.local{font-family:var(--font-title);font-size:12px;color:var(--ember);text-shadow:2px 2px 0 #000}
+.topo-dir{position:absolute;right:calc(12px + env(safe-area-inset-right,0px));top:calc(12px + env(safe-area-inset-top,0px));padding:8px 12px;display:grid;gap:2px;min-width:110px;text-align:right}
+.topo-dir .row{display:flex;justify-content:flex-end;align-items:center;gap:8px;font-variant-numeric:tabular-nums}
+.topo-dir em{font-style:normal;color:var(--dim)}
+.sun{width:9px;height:9px;border-radius:50%;background:#ffd34d;box-shadow:0 0 0 2px #000;display:inline-block}
+.sun.moon{background:transparent;box-shadow:inset -3px 0 0 #dfe6ff}
+
+#pescaInfo{position:absolute;left:calc(12px + env(safe-area-inset-left,0px));top:calc(84px + env(safe-area-inset-top,0px));padding:8px 10px;display:grid;gap:6px;width:200px}
+#pescaInfo .titulo{font-family:var(--font-title);color:var(--ember);text-shadow:2px 2px 0 #000;display:flex;justify-content:space-between}
+#pescaInfo small{color:var(--dim);font-size:12px}
+#pescaInfo .estado{color:var(--parch);min-height:1.2em}
+#pescaInfo button{width:100%}
+#bAuto[aria-pressed="true"]{color:var(--moss)}
+
+.bar{position:relative;height:10px;background:#0b080d;border:2px solid #000;box-shadow:inset 0 0 0 1px #2b2430;overflow:hidden}
+.bar>i{position:absolute;left:0;top:0;bottom:0;display:block;width:0;transition:width .15s linear}
+.bar.xp>i{background:linear-gradient(#efffb0 0 28%,#9fd65a 28% 72%,#557f27 72%)}
+.bar.prog>i{background:linear-gradient(#ffe2a0 0 28%,#f0a83c 28% 72%,#7a4a14 72%);transition:none}
+.bar.agua>i{background:linear-gradient(#c8f0ff 0 28%,#58a6ff 28% 72%,#24508e 72%);transition:none}
+
+#buffs{position:absolute;right:calc(12px + env(safe-area-inset-right,0px));top:calc(70px + env(safe-area-inset-top,0px));display:grid;gap:4px;justify-items:end}
+#buffs .buff{pointer-events:auto;display:flex;align-items:center;gap:6px;padding:4px 8px;background:rgba(14,11,18,.78);border:2px solid #000;box-shadow:inset 0 0 0 2px var(--line);font-variant-numeric:tabular-nums}
+#buffs .buff b{color:var(--moss);font-weight:400}
+
+#avisos{position:absolute;left:50%;top:calc(14px + env(safe-area-inset-top,0px));transform:translateX(-50%);display:grid;gap:4px;justify-items:center;pointer-events:none}
+#avisos .av{padding:6px 12px;background:rgba(14,11,18,.86);border:2px solid #000;box-shadow:inset 0 0 0 2px var(--line);text-shadow:1px 1px 0 #000;animation:avIn .2s ease-out;white-space:nowrap}
+#avisos .av.sai{opacity:0;transition:opacity .5s}
+@keyframes avIn{from{transform:translateY(-6px);opacity:0}to{transform:none;opacity:1}}
+
+/* a doca de ofícios: uma fileira de botões de ferro embaixo, no centro */
+#doca{position:absolute;left:50%;bottom:calc(10px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);display:flex;gap:4px;padding:6px;max-width:calc(100vw - 16px);overflow-x:auto;background:rgba(14,11,18,.82);border:2px solid #000;box-shadow:inset 0 0 0 2px var(--line),0 3px 0 rgba(0,0,0,.45)}
+#doca button{display:grid;justify-items:center;gap:2px;min-width:64px;padding:6px 4px 4px;font-size:12px;font-weight:400;background:linear-gradient(#2c2431,#1b1520);color:var(--parch)}
+#doca button .ico{width:32px;height:32px}
+#doca button.on{background:linear-gradient(#5a3a1a,#2e1d0c);color:#ffd98a}
+#doca button .aceso{position:absolute;top:4px;right:4px;width:6px;height:6px;background:var(--moss);box-shadow:0 0 0 2px #000}
+#doca button{position:relative}
+@media (max-width:640px){#doca button{min-width:46px}#doca button span{display:none}#pescaInfo{width:170px}}
+
+/* ===== botões ===== */
+button{font-family:var(--font-ui);font-weight:400;font-size:12px;padding:8px 16px;border:3px solid #000;background:var(--ember);color:#1b1006;cursor:pointer;border-radius:0;
+  box-shadow:inset -3px -3px 0 rgba(0,0,0,.28),inset 3px 3px 0 rgba(255,240,200,.35),0 3px 0 rgba(0,0,0,.45)}
+button:hover{filter:brightness(1.1)}
+button:focus-visible{outline:3px solid var(--parch);outline-offset:2px}
+button:disabled{filter:grayscale(1) brightness(.6);cursor:not-allowed}
+button.ghost{background:linear-gradient(#2c2431,#1b1520);color:var(--parch);border:8px solid #000;border-image:var(--tx-frame-sm) 4 / 8px stretch;box-shadow:0 3px 0 rgba(0,0,0,.45);padding:4px 12px}
+button.ghost.sm{padding:2px 8px}
+button.x{width:38px;height:38px;padding:0;font-size:18px;line-height:1;display:grid;place-items:center}
+
+/* ===== cartões (painéis) ===== */
+.overlay{position:fixed;inset:0;display:grid;place-items:center;padding:76px 16px 96px;background:rgba(8,6,12,.45);z-index:20}
+.card{width:min(760px,100%);max-height:calc(100vh - 172px);max-height:calc(100dvh - 172px);display:grid;grid-template-rows:auto 1fr;gap:12px;padding:18px 20px 16px;
+  background-color:#15111a;background-image:linear-gradient(rgba(12,9,16,.38),rgba(12,9,16,.38)),var(--tx-stone,none);background-size:auto,128px 128px;image-rendering:pixelated;
+  border:20px solid #000;border-image:var(--tx-frame) 10 / 20px stretch;box-shadow:0 10px 0 rgba(0,0,0,.5),0 0 60px rgba(0,0,0,.6)}
+.card header{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.card h2{margin:0;font-family:var(--font-title);font-weight:400;font-size:24px;line-height:1;color:var(--ember);text-shadow:3px 3px 0 #000}
+.pcorpo{overflow:auto;min-height:0;padding-right:4px}
+.pcorpo::-webkit-scrollbar{width:10px}
+.pcorpo::-webkit-scrollbar-track{background:#0b080d;border:2px solid #000}
+.pcorpo::-webkit-scrollbar-thumb{background:#5a4a38;border:2px solid #000}
+
+/* dica dos itens */
+#dica{position:fixed;z-index:40;pointer-events:none;max-width:260px;padding:8px 10px;background:rgba(14,11,18,.95);border:2px solid #000;box-shadow:inset 0 0 0 2px var(--line);line-height:1.5}
+#dica b{display:block;font-weight:400;font-size:12px}
+#dica em{font-style:normal;color:var(--dim)}
+#dica .bonus{color:var(--moss)}
+
+/* a pesca pegou: o peixe aparece grande no meio */
+#pegou{position:fixed;left:50%;top:22%;transform:translateX(-50%);z-index:15;display:grid;justify-items:center;gap:4px;padding:12px 22px 14px;pointer-events:none;
+  background:rgba(14,11,18,.9);border:12px solid #000;border-image:var(--tx-frame-sm) 4 / 12px stretch;animation:pgIn .25s ease-out;text-align:center}
+#pegou .ico{width:72px;height:72px}
+#pegou b{font-family:var(--font-title);font-weight:400;font-size:18px;text-shadow:2px 2px 0 #000}
+#pegou small{color:var(--dim);font-size:12px}
+#pegou .novo{color:var(--moss)}
+#pegou.sai{opacity:0;transition:opacity .4s}
+@keyframes pgIn{from{transform:translate(-50%,10px) scale(.9);opacity:0}to{transform:translateX(-50%);opacity:1}}
+
+.r-comum{color:var(--r-comum)}.r-incomum{color:var(--r-incomum)}.r-raro{color:var(--r-raro)}.r-epico{color:var(--r-epico)}.r-lendario{color:var(--r-lendario)}

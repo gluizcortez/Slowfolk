@@ -1,0 +1,5 @@
+/* Fontes do jogo, todas locais (funcionam offline e sem Google Fonts), todas SIL OFL 1.1 (licenças em fonts/OFL-*.txt).
+   "Slow Pixel" é o texto de toda a interface e do canvas; "Jersey 10" é a do logo da tela de início (js/12-titulo.js). */
+@font-face{font-family:"Slow Pixel";src:url(../fonts/UDPixel-Regular.woff2) format("woff2");font-weight:100 750;font-style:normal;font-display:block}
+@font-face{font-family:"Slow Pixel";src:url(../fonts/UDPixel-Bold.woff2) format("woff2");font-weight:751 900;font-style:normal;font-display:block}
+@font-face{font-family:"Jersey 10";src:url(../fonts/Jersey10-Regular.woff2) format("woff2");font-weight:400;font-style:normal;font-display:block}

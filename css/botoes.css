@@ -1,0 +1,3 @@
+/* o "afundar" ao clicar de todos os botões; fica por último no HTML, então botão novo já ganha o efeito sozinho */
+button:active:not(:disabled){translate:0 2px;box-shadow:inset 3px 3px 0 rgba(0,0,0,.28),0 1px 0 rgba(0,0,0,.45)}
+button.ghost:active:not(:disabled){box-shadow:0 1px 0 rgba(0,0,0,.45)}

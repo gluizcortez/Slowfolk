@@ -1,0 +1,28 @@
+/* tela de início (js/12-titulo.js): o lago rodando atrás, nome em cima à esquerda, menu no canto inferior esquerdo,
+   opções em texto puro, sem caixas. */
+#title{position:fixed;inset:0;z-index:50;transition:opacity .28s ease-out}
+#title.out{opacity:0;pointer-events:none}
+#title .shade{position:absolute;inset:0;pointer-events:none;background:
+  linear-gradient(90deg,rgba(3,2,5,.55),rgba(3,2,5,0) 45%),
+  linear-gradient(0deg,rgba(3,2,5,.55),rgba(3,2,5,0) 40%)}
+#title .logo{position:absolute;left:max(24px,5.5vw);top:max(18px,7vh);margin:0;line-height:0;filter:drop-shadow(0 0 24px rgba(0,0,0,.5))}
+#ttLogo{image-rendering:pixelated;display:block}
+#title .tsub{display:block;margin-top:10px;font-family:var(--font-ui);font-size:12px;line-height:1.2;color:#e8dcc0;text-shadow:2px 2px 0 #000;letter-spacing:.05em}
+
+#title .tmenu{position:absolute;left:max(24px,5.5vw);bottom:max(22px,8vh);display:flex;flex-direction:column;align-items:flex-start;gap:clamp(2px,.8vh,10px)}
+#title .tmenu button,#title .tmenu button:hover,#title .tmenu button:active{all:unset;box-sizing:border-box;position:relative;display:block;padding:2px 0;cursor:pointer;
+  font-family:var(--font-title);font-size:24px;font-size:round(nearest,clamp(18px,4.6vh,30px),6px);line-height:1;color:#d8c8a8;text-shadow:3px 3px 0 #000,0 0 18px rgba(0,0,0,.8);transition:color 90ms}
+#title .tmenu button[hidden]{display:none}
+#title .tmenu button:focus-visible,#title .tmenu button:hover{color:#ffd98a;outline:none}
+#title .tmenu button:hover::before,#title .tmenu button:focus-visible::before{content:"›";position:absolute;left:-.8em;color:#ffd98a}
+#title .tmenu button.warn{color:#ff8f7a}
+#title .tmenu .back{margin-top:8px}
+
+#title .tnews{position:absolute;left:max(24px,5.5vw);bottom:max(22px,8vh);width:min(560px,calc(100vw - 48px));max-height:70vh;display:grid;grid-template-rows:auto 1fr auto;gap:10px}
+#title .tnews h2{margin:0;font-family:var(--font-title);font-weight:400;font-size:24px;color:var(--ember);text-shadow:3px 3px 0 #000}
+#title .tnews .tmenu{position:static}
+#title .tnlist{overflow:auto;padding:12px 16px;background:rgba(10,8,14,.82);border:12px solid #000;border-image:var(--tx-frame-sm) 4 / 12px stretch}
+#title .tnlist h3{margin:0;font-weight:400;font-size:12px;color:#ffd98a}
+#title .tnlist small{color:var(--dim)}
+#title .tnlist ul{margin:6px 0 12px;padding-left:18px;line-height:1.6}
+#title .tver{position:absolute;right:max(16px,2vw);bottom:max(12px,2vh);color:#b9a68a;text-shadow:2px 2px 0 #000}

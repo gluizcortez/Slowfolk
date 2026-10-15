@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Slowfolk</title>
+<meta name="description" content="Slowfolk: um RPG de progressão tranquilo em pixel art. Pesque, cozinhe, minere, forje armaduras e cuide da horta.">
+<link rel="stylesheet" href="css/fonte.css">
+<link rel="stylesheet" href="css/estilo.css">
+<link rel="stylesheet" href="css/paineis.css">
+<link rel="stylesheet" href="css/titulo.css">
+<link rel="stylesheet" href="css/botoes.css">
+</head>
+<body>
+
+<canvas id="screen" aria-label="Tela do jogo Slowfolk"></canvas>
+
+<div id="hud" hidden>
+  <div class="topo-esq panel">
+    <div class="moedas"><i class="ico" data-ico="ui:moeda"></i><b id="hMoedas">0</b></div>
+    <div class="local" id="hLocal">Lago Sereno</div>
+  </div>
+  <div class="topo-dir panel">
+    <div class="row"><span class="sun" id="hSun"></span><span id="hRelogio">08:00</span></div>
+    <div class="row"><em id="hDia">Dia 1</em></div>
+  </div>
+
+  <div id="pescaInfo" class="panel">
+    <div class="titulo">Pesca <small id="hPescaNv">nv 1</small></div>
+    <div class="bar xp"><i id="hPescaXp"></i></div>
+    <div class="estado" id="hEstado">Clique na água para lançar</div>
+    <button type="button" class="ghost sm" id="bAuto" aria-pressed="false">Modo calmo: desligado</button>
+  </div>
+
+  <div id="buffs"></div>
+  <div id="avisos" aria-live="polite"></div>
+
+  <nav id="doca" aria-label="Ofícios">
+    <button type="button" data-p="pesca"><i class="ico" data-ico="ui:vara"></i><span>Pesca</span></button>
+    <button type="button" data-p="cozinha"><i class="ico" data-ico="ui:panela"></i><span>Cozinha</span></button>
+    <button type="button" data-p="mina"><i class="ico" data-ico="ui:picareta"></i><span>Mina</span></button>
+    <button type="button" data-p="forja"><i class="ico" data-ico="ui:bigorna"></i><span>Forja</span></button>
+    <button type="button" data-p="horta"><i class="ico" data-ico="ui:broto"></i><span>Horta</span></button>
+    <button type="button" data-p="cesto"><i class="ico" data-ico="ui:cesto"></i><span>Cesto</span></button>
+    <button type="button" data-p="mercado"><i class="ico" data-ico="ui:bolsa"></i><span>Mercado</span></button>
+    <button type="button" data-p="ficha"><i class="ico" data-ico="ui:chapeu"></i><span>Ficha</span></button>
+  </nav>
+</div>
+
+<div id="painel" class="overlay" hidden>
+  <section class="card" role="dialog" aria-labelledby="pTitulo">
+    <header><h2 id="pTitulo"></h2><button type="button" class="ghost x" id="pFechar" aria-label="Fechar">×</button></header>
+    <div class="pcorpo" id="pCorpo"></div>
+  </section>
+</div>
+
+<div id="pegou" hidden></div>
+<div id="dica" hidden></div>
+
+<script src="js/00-texturas-ui.js"></script>
+<script src="js/01-base.js"></script>
+<script src="js/02-dados.js"></script>
+<script src="js/03-icones.js"></script>
+<script src="js/04-estado.js"></script>
+<script src="js/05-audio.js"></script>
+<script src="js/06-cena.js"></script>
+<script src="js/07-pesca.js"></script>
+<script src="js/08-oficios.js"></script>
+<script src="js/09-paineis.js"></script>
+<script src="js/10-hud.js"></script>
+<script src="js/11-versao.js"></script>
+<script src="js/12-titulo.js"></script>
+<script src="js/13-boot.js"></script>
+</body>
+</html>
