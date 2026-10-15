@@ -43,6 +43,9 @@ const sfx = {
   colhe: () => { tom(587, 0.08, { tipo: 'triangle', vol: 0.04 }); tom(880, 0.1, { tipo: 'triangle', vol: 0.04, atraso: 0.06 }); },
   equipa: () => { ruido(0.08, { vol: 0.05, corte: 3000 }); tom(400, 0.1, { vol: 0.03 }); },
   come: () => { [0, 1, 2].forEach(i => ruido(0.05, { vol: 0.04, corte: 1500, atraso: i * 0.09 })); },
-  select: () => tom(740, 0.05, { tipo: 'triangle', vol: 0.03 })
+  select: () => tom(740, 0.05, { tipo: 'triangle', vol: 0.03 }),
+  passo: () => { tom(150 + Math.random() * 40, 0.05, { tipo: 'triangle', vol: 0.035 }); ruido(0.03, { vol: 0.02, corte: 900 }); },
+  motor: () => tom(70 + Math.random() * 12, 0.09, { tipo: 'sawtooth', vol: 0.012 }),
+  embarca: () => { ruido(0.2, { vol: 0.05, corte: 700 }); tom(220, 0.08, { tipo: 'triangle', vol: 0.03, atraso: 0.05 }); }
 };
 function alternaMudo() { mudo = !mudo; try { localStorage.setItem('slowfolk-mudo', mudo ? '1' : '0'); } catch (e) { } aviso(mudo ? 'Som desligado' : 'Som ligado'); }

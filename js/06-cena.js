@@ -6,12 +6,19 @@
    A tela é pintada numa resolução baixa (cerca de 240 linhas) e esticada com pixels nítidos.
    Tudo que não mexe (céu, montanhas, árvores, reflexo, fundo do lago, neblina) é pintado uma vez em 4 paletas
    (dia, tarde, crepúsculo, noite) quando a tela muda de tamanho ou de ponto de pesca; cada quadro só mistura as duas
-   paletas da hora e desenha por cima o que mexe. */
+   paletas da hora e desenha por cima o que mexe.
+   O lago é mais largo que a tela (MUNDO) e a câmera (CAM) acompanha o barco: o céu fica parado, as montanhas de longe
+   andam devagar, as do meio um pouco mais, a margem mais ainda, e a água, o fundo e o barco andam junto (parallax).
+   O que fica na água (peixes, plantas, boia, píer, barco) está em coordenadas do mundo; o resto, em coordenadas da tela. */
 
 const cv = $('screen'), cx = cv.getContext('2d');
 let W = 420, H = 240, K = 3;          // largura, altura (pixels do jogo) e o tamanho de cada pixel na tela
 let HOR = 100;                        // a margem de lá (pé das árvores)
 let WL = 134;                         // a linha d'água onde o barco boia; embaixo dela é a vista submersa
+let MUNDO = 1200;                     // largura do lago inteiro (o píer fica no x = 0)
+const CAM = { x: 0 };                 // onde começa a tela, em x do mundo
+const PAR = { longe: 0.1, medio: 0.22, terra: 0.42 };   // quanto cada camada anda quando a câmera anda 1
+const largCamada = f => Math.ceil(W + (MUNDO - W) * f) + 2;
 const FASES = ['dia', 'tarde', 'crep', 'noite'];
 const CEUS = {
   dia: { topo: '#3a82cc', meio: '#74b4e2', base: '#cfe8ec', nevoa: '#d6eaee', nuvem: ['#ffffff', '#e0eaf2', '#a9bcd4'], sol: '#fffae0', halo: '#fff0b0' },
@@ -59,6 +66,7 @@ function ajustaTela() {
   cv.width = W; cv.height = H;
   HOR = Math.round(H * 0.42);
   WL = Math.round(H * 0.56);
+  MUNDO = Math.round(Math.max(W * 2.6, 960));
   cx.imageSmoothingEnabled = false;
   fundo = null;
 }
@@ -105,10 +113,10 @@ function pintaGrad(ctx, x0, y0, w, h, cores, faixas, curva = 1) {
 /* ===== peças da paisagem ===== */
 
 // perfil de relevo: senos de frequências diferentes somados, normalizado para 0..1, virado em linha do topo
-function perfil(rnd, amp, base, esc) {
+function perfil(rnd, amp, base, esc, larg = W) {
   const f = [[0.008, 0.5], [0.019, 0.28], [0.043, 0.14], [0.097, 0.06], [0.23, 0.02]], fs = f.map(() => rnd() * 9), v = [];
-  for (let x = 0; x < W; x++) { let y = 0; f.forEach(([q, p], i) => { y += Math.sin(x * q * esc + fs[i]) * p; }); v.push(y); }
-  const mn = Math.min(...v), mx = Math.max(...v);
+  for (let x = 0; x < larg; x++) { let y = 0; f.forEach(([q, p], i) => { y += Math.sin(x * q * esc + fs[i]) * p; }); v.push(y); }
+  let mn = Infinity, mx = -Infinity; for (const y of v) { if (y < mn) mn = y; if (y > mx) mx = y; }
   return v.map(y => Math.round(base - (y - mn) / (mx - mn || 1) * amp));
 }
 
@@ -116,10 +124,10 @@ function perfil(rnd, amp, base, esc) {
 function montanha(x, topo, base, cor, neve, f, nev) {
   const c = naLuz(cor, f, nev), cl = naLuz(mistura(cor, '#ffffff', 0.22), f, nev), cs = naLuz(escurece(cor, 0.78), f, nev);
   const nl = naLuz('#f4f8ff', f, nev * 0.8), ns = naLuz('#b8c4dc', f, nev * 0.8);
-  const mn = Math.min(...topo), linhaNeve = mn + (base - mn) * neve;
-  for (let px = 0; px < W; px++) {
+  const L = topo.length, mn = topo.reduce((a, b) => Math.min(a, b), Infinity), linhaNeve = mn + (base - mn) * neve;
+  for (let px = 0; px < L; px++) {
     // inclinação medida numa janela larga: > 0 sobe para a direita, a face olha para o sol
-    const s = clamp(((topo[Math.max(0, px - 3)]) - (topo[Math.min(W - 1, px + 3)])) / 3, -2, 2);
+    const s = clamp(((topo[Math.max(0, px - 3)]) - (topo[Math.min(L - 1, px + 3)])) / 3, -2, 2);
     const prof = 5 + Math.abs(s) * 6;
     for (let y = topo[px]; y <= base; y++) {
       const d = y - topo[px];
@@ -193,7 +201,7 @@ function cabana(x, x0, base, f) {
 }
 
 // paredão de pedra com camadas e rachaduras (Rio da Pedra)
-function paredao(x, lado, f, rnd) {
+function paredao(x, lado, f, rnd, LT) {
   const larg = Math.round(W * 0.17), alto = Math.round(HOR * 0.78), topo = [];
   for (let i = 0; i < larg; i++) {
     const u = i / larg;
@@ -201,7 +209,7 @@ function paredao(x, lado, f, rnd) {
   }
   const cb = naLuz('#8e7a68', f, 0.04), cl = naLuz('#b49e84', f, 0.04), cs = naLuz('#5e4c40', f, 0.04), cr = naLuz('#4a3a32', f, 0.04);
   for (let i = 0; i < larg; i++) {
-    const px = lado ? W - 1 - i : i, t = topo[i];
+    const px = lado ? LT - 1 - i : i, t = topo[i];
     for (let y = t; y <= HOR; y++) {
       const d = y - t;
       let c = cb;
@@ -212,7 +220,7 @@ function paredao(x, lado, f, rnd) {
       x.fillStyle = c; x.fillRect(px, y, 1, 1);
     }
   }
-  return topo.map((t, i) => ({ x: lado ? W - 1 - i : i, t }));
+  return topo.map((t, i) => ({ x: lado ? LT - 1 - i : i, t }));
 }
 
 // nuvem: bolhas somadas com base reta; 3 tons (luz em cima, sombra embaixo)
@@ -245,45 +253,47 @@ function geraFundo() {
   const rnd = rngSemente(P.semente * 977 + W);
   const HU = H - WL, B = WL - HOR;   // altura da vista submersa e da faixa de superfície
   const chaoBase = Math.max(Math.round(HU * 0.55), HU - Math.ceil(100 / K) - 4);   // o fundo fica acima da doca
+  // cada camada do parallax tem a largura que a câmera chega a mostrar dela
+  const LL = largCamada(PAR.longe), LM = largCamada(PAR.medio), LT = largCamada(PAR.terra);
 
-  const longe = perfil(rnd, HOR * P.amp[0], HOR - 12, 1);
-  const medio = perfil(rnd, HOR * P.amp[1], HOR - 6, 1.6);
-  const colina = perfil(rnd, HOR * 0.07, HOR - 4, 3);
-  const cab = P.cabana ? Math.round(W * 0.66) : -999;
-  const cach = P.cachoeira ? Math.round(W * 0.56) : -999;
+  const longe = perfil(rnd, HOR * P.amp[0], HOR - 12, 1, LL);
+  const medio = perfil(rnd, HOR * P.amp[1], HOR - 6, 1.6, LM);
+  const colina = perfil(rnd, HOR * 0.07, HOR - 4, 3, LT);
+  const cab = P.cabana ? Math.round(LT * 0.66) : -999;
+  const cach = P.cachoeira ? Math.round(LM * 0.56) : -999;
   // árvores: uma fileira de trás (menor, mais apagada) e uma da frente
   const tras = [], frente = [];
-  for (let x = -4; x < W + 4; x += 2 + Math.floor(rnd() * 3)) tras.push({ x, h: Math.round(H * (0.04 + rnd() * 0.05)), folha: rnd() < P.fracFolha, cor: Math.floor(rnd() * 99) });
-  for (let x = -6; x < W + 6; x += 4 + Math.floor(rnd() * 6)) {
+  for (let x = -4; x < LT + 4; x += 2 + Math.floor(rnd() * 3)) tras.push({ x, h: Math.round(H * (0.04 + rnd() * 0.05)), folha: rnd() < P.fracFolha, cor: Math.floor(rnd() * 99) });
+  for (let x = -6; x < LT + 6; x += 4 + Math.floor(rnd() * 6)) {
     if (x > cab - 6 && x < cab + 30) continue;
-    if (x > cach - 8 && x < cach + 14) continue;
-    const borda = Math.min(x, W - x) < W * 0.12 ? 1.25 : 1;
+    const borda = Math.min(x, LT - x) < W * 0.12 ? 1.25 : 1;
     if (rnd() < 0.82) frente.push({ x, h: Math.round(H * (0.06 + rnd() * 0.09) * borda), folha: rnd() < P.fracFolha, cor: Math.floor(rnd() * 99) });
   }
   const sement = rnd() * 1e6;
 
-  const ceu = {}, terra = {}, refl = {}, agua = {}, neblina = {};
+  const ceu = {}, montesLonge = {}, montesMedio = {}, terra = {}, tintaRefl = {}, agua = {}, neblina = {};
   let janela = null, chamine = null, topoParedao = [];
   for (const f of FASES) {
     const C = CEUS[f];
-    // céu
+    // céu (não anda com a câmera)
     const c1 = tela(W, HOR + 6); pintaGrad(c1.getContext('2d'), 0, 0, W, HOR + 6, [C.topo, C.meio, C.base], 14, 1.15);
     ceu[f] = c1;
 
-    // terra: montanhas, floresta, cabana, margem (um pouco além do horizonte, para a margem cobrir a faixa)
-    const ct = tela(W, HOR + 6), xt = ct.getContext('2d');
-    montanha(xt, longe, HOR, P.montes[0], P.neveMonte, f, 0.5);
-    montanha(xt, medio, HOR, P.montes[1], P.neveMonte * 0.5, f, 0.3);
-    if (P.paredao) { const r2 = rngSemente(P.semente); topoParedao = [...paredao(xt, 0, f, r2), ...paredao(xt, 1, f, r2)]; }
+    // montanhas de longe e do meio, cada uma na sua camada
+    const cl = tela(LL, HOR + 6); montanha(cl.getContext('2d'), longe, HOR, P.montes[0], P.neveMonte, f, 0.5); montesLonge[f] = cl;
+    const cmd = tela(LM, HOR + 6); montanha(cmd.getContext('2d'), medio, HOR, P.montes[1], P.neveMonte * 0.5, f, 0.3); montesMedio[f] = cmd;
+
+    // terra perto: floresta, cabana, margem (um pouco além do horizonte, para a margem cobrir a faixa)
+    const ct = tela(LT, HOR + 6), xt = ct.getContext('2d');
+    if (P.paredao) { const r2 = rngSemente(P.semente); topoParedao = [...paredao(xt, 0, f, r2, LT), ...paredao(xt, 1, f, r2, LT)]; }
     // floresta distante: morrinhos cobertos de pontas de pinheiro
     const cc = naLuz(P.colina, f, 0.22), ccl = naLuz(mistura(P.colina, '#ffffff', 0.15), f, 0.22), ccs = naLuz(escurece(P.colina, 0.8), f, 0.22);
-    for (let x = 0; x < W; x++) { xt.fillStyle = cc; xt.fillRect(x, colina[x], 1, HOR - colina[x] + 1); }
-    for (let x = 0; x < W; x += 2) {
-      if (Math.abs(x - cach - 3) < 7) continue;
+    for (let x = 0; x < LT; x++) { xt.fillStyle = cc; xt.fillRect(x, colina[x], 1, HOR - colina[x] + 1); }
+    for (let x = 0; x < LT; x += 2) {
       const hh = 3 + Math.floor(hash(x, 7) * 5);
       for (let j = 0; j < hh; j++) { const w = Math.floor(j / 2); xt.fillStyle = ccl; xt.fillRect(x - w, colina[x] - hh + j, w + 1, 1); xt.fillStyle = ccs; xt.fillRect(x + 1, colina[x] - hh + j, w, 1); }
     }
-    if (P.neve) for (let x = 0; x < W; x++) if (hash(x, 9) < 0.5) { xt.fillStyle = naLuz('#e8f0f8', f, 0.22); xt.fillRect(x, colina[x], 1, 1); }
+    if (P.neve) for (let x = 0; x < LT; x++) if (hash(x, 9) < 0.5) { xt.fillStyle = naLuz('#e8f0f8', f, 0.22); xt.fillRect(x, colina[x], 1, 1); }
     const tronco = naLuz('#4a3020', f, 0.05), neve = P.neve ? naLuz('#f0f6ff', f, 0.05) : null;
     const coresPinho = (nev) => P.pinho.map(c => naLuz(c, f, nev));
     const coresFolha = (i, nev) => P.folhas[i % P.folhas.length].map(c => naLuz(c, f, nev));
@@ -295,48 +305,40 @@ function geraFundo() {
     if (P.paredao) for (const { x, t } of topoParedao) if (hash(x, 1) < 0.07) pinheiro(xt, x, t + 1, 8 + Math.floor(hash(x, 2) * 8), coresPinho(0.04), tronco, null);
     // margem: faixa de terra, pedrinhas e juncos
     const cm = naLuz(P.margem, f, 0.02), cms = naLuz(escurece(P.margem, 0.7), f, 0.02), cp = naLuz(P.pedra, f, 0.02), cpl = naLuz(mistura(P.pedra, '#ffffff', 0.3), f, 0.02);
-    xt.fillStyle = cm; xt.fillRect(0, HOR - 1, W, 2); xt.fillStyle = cms; xt.fillRect(0, HOR + 1, W, 1);
-    for (let x = 0; x < W; x += 3 + Math.floor(hash(x, 4) * 9)) {
+    xt.fillStyle = cm; xt.fillRect(0, HOR - 1, LT, 2); xt.fillStyle = cms; xt.fillRect(0, HOR + 1, LT, 1);
+    for (let x = 0; x < LT; x += 3 + Math.floor(hash(x, 4) * 9)) {
       const w = 2 + Math.floor(hash(x, 5) * 4);
       xt.fillStyle = cp; xt.fillRect(x, HOR - 1, w, 2); xt.fillStyle = cpl; xt.fillRect(x, HOR - 1, w - 1, 1);
     }
-    if (P.juncos) for (let x = 0; x < W; x++) if (hash(x, 6) < 0.18) { const h = 2 + Math.floor(hash(x, 8) * 4); xt.fillStyle = naLuz(hash(x, 10) < 0.5 ? '#7a8a3a' : '#5a6a2a', f, 0.02); xt.fillRect(x, HOR - h, 1, h); }
+    if (P.juncos) for (let x = 0; x < LT; x++) if (hash(x, 6) < 0.18) { const h = 2 + Math.floor(hash(x, 8) * 4); xt.fillStyle = naLuz(hash(x, 10) < 0.5 ? '#7a8a3a' : '#5a6a2a', f, 0.02); xt.fillRect(x, HOR - h, 1, h); }
     terra[f] = ct;
 
-    // reflexo: céu e terra de cabeça para baixo, achatados e puxados para a cor da água
-    const junto = tela(W, HOR + 2), xj = junto.getContext('2d');
-    xj.drawImage(c1, 0, 0); xj.drawImage(ct, 0, 0);
-    const cr = tela(W + 8, B), xr = cr.getContext('2d');
-    for (let r = 0; r < B; r++) {
-      const sy = Math.max(0, HOR - Math.floor(r * 1.15));
-      xr.drawImage(junto, 0, sy, W, 1, 4, r, W, 1);
-      xr.drawImage(junto, 0, sy, 1, 1, 0, r, 4, 1); xr.drawImage(junto, W - 1, sy, 1, 1, W + 4, r, 4, 1);
-    }
+    // o reflexo é copiado da própria tela a cada quadro (ver desenhaCena); aqui só a tinta da água que vai por cima
+    const cr = tela(W, B), xr = cr.getContext('2d');
     const ag = naLuz(P.agua, f, 0.1), agf = naLuz(mistura(P.agua, P.aguaFunda, 0.4), f, 0);
-    for (let r = 0; r < B; r++) { const u = r / B; xr.globalAlpha = 0.32 + u * 0.38; xr.fillStyle = mistura(ag, agf, u); xr.fillRect(0, r, W + 8, 1); }
-    xr.globalAlpha = 1;
-    refl[f] = cr;
+    for (let r = 2; r < B; r++) { const u = r / B; xr.globalAlpha = 0.32 + u * 0.38; xr.fillStyle = mistura(ag, agf, u); xr.fillRect(0, r, W, 1); }
+    tintaRefl[f] = cr;
 
-    // embaixo d'água: degradê da água, chão de areia, pedras e seixos (tudo puxado para a cor da água)
-    const ca = tela(W, HU), xa = ca.getContext('2d');
+    // embaixo d'água, o lago inteiro: degradê da água, chão de areia, pedras e seixos (tudo puxado para a cor da água)
+    const ca = tela(MUNDO, HU), xa = ca.getContext('2d');
     const a0 = naLuz(mistura(P.agua, '#ffffff', 0.08), f, 0), a1 = naLuz(P.agua, f, 0), a2 = naLuz(mistura(P.agua, P.aguaFunda, 0.6), f, 0), a3 = naLuz(P.aguaFunda, f, 0);
-    pintaGrad(xa, 0, 0, W, HU, [a0, a1, a2, a3], 12, 0.9);
-    const rf = rngSemente(P.semente * 31 + W), chao = perfil(rf, 9, chaoBase, 4).map(v => Math.min(HU - 3, v));
+    pintaGrad(xa, 0, 0, MUNDO, HU, [a0, a1, a2, a3], 12, 0.9);
+    const rf = rngSemente(P.semente * 31 + W), chao = perfil(rf, 9, chaoBase, 4, MUNDO).map(v => Math.min(HU - 3, v));
     const turvo = (c, k = 0.45) => mistura(naLuz(c, f, 0), a3, k);
     const ch = turvo(P.chao), chl = turvo(mistura(P.chao, '#ffffff', 0.2), 0.4), chs = turvo(escurece(P.chao, 0.7), 0.5);
-    for (let x = 0; x < W; x++) for (let y = chao[x]; y < HU; y++) {
+    for (let x = 0; x < MUNDO; x++) for (let y = chao[x]; y < HU; y++) {
       const d = y - chao[x];
       xa.fillStyle = d === 0 ? chl : d > 3 && bayer(x, y) < (d - 3) / 6 ? chs : ch; xa.fillRect(x, y, 1, 1);
     }
     const cpd = turvo(P.pedraFundo), cpdl = turvo(mistura(P.pedraFundo, '#ffffff', 0.25), 0.4), cpds = turvo(escurece(P.pedraFundo, 0.65), 0.5);
-    for (let i = 0; i < W / 22; i++) {
-      const px = Math.floor(rf() * W), rw = 3 + rf() * 8, rh = 2 + rf() * 4, py = chao[Math.min(W - 1, px)] + 2;
+    for (let i = 0; i < MUNDO / 22; i++) {
+      const px = Math.floor(rf() * MUNDO), rw = 3 + rf() * 8, rh = 2 + rf() * 4, py = chao[Math.min(MUNDO - 1, px)] + 2;
       for (let y = Math.floor(py - rh); y <= py + 1; y++) for (let x = Math.floor(px - rw); x <= px + rw; x++) {
         const dx = (x - px) / rw, dy = (y - py) / rh; if (dx * dx + dy * dy > 1) continue;
         xa.fillStyle = dx + dy < -0.5 ? cpdl : dx + dy > 0.4 ? cpds : cpd; xa.fillRect(x, y, 1, 1);
       }
     }
-    for (let i = 0; i < W / 3; i++) { const px = Math.floor(rf() * W); xa.fillStyle = rf() < 0.5 ? cpdl : cpds; xa.fillRect(px, chao[px] + 1 + Math.floor(rf() * 3), 1, 1); }
+    for (let i = 0; i < MUNDO / 3; i++) { const px = Math.floor(rf() * MUNDO); xa.fillStyle = rf() < 0.5 ? cpdl : cpds; xa.fillRect(px, chao[px] + 1 + Math.floor(rf() * 3), 1, 1); }
     agua[f] = ca;
 
     // neblina da manhã: faixas pontilhadas em volta da margem, com o dobro da largura para correr de lado
@@ -364,16 +366,20 @@ function geraFundo() {
   const gelos = P.gelo ? [0, 1, 2, 3].map(() => ({ x: r2() * W, y: HOR + 3 + Math.floor(r2() * B * 0.7), w: 8 + Math.floor(r2() * 18) })) : [];
   // plantas do fundo: fitas que balançam (algas), mais altas na Baía (kelp)
   const chao0 = chaoBase - 6, plantas = [];
-  for (let x = 2; x < W; x += 3 + Math.floor(r2() * 10)) if (r2() < (P.gelo ? 0.35 : 0.55)) plantas.push({ x, h: Math.round((P.gelo ? 14 + r2() * 30 : 6 + r2() * 20)), f: r2() * 6, c: r2() < 0.5 ? 0 : 1 });
-  const nenufares = P.nenufares ? [[W * 0.86, 9], [W * 0.92, 7], [W * 0.79, 6], [W * 0.97, 8]].map(([x, w]) => ({ x: Math.round(x), w, flor: w > 7 })) : [];
-  const juncosFrente = P.juncos ? [...Array(16)].map((_, i) => ({ x: i < 9 ? Math.round(i * 2.2 + r2() * 2) : Math.round(W - 2 - (i - 9) * 2.4 - r2() * 2), h: 12 + Math.floor(r2() * 18), f: r2() * 6, taboa: r2() < 0.45 })) : [];
+  for (let x = 2; x < MUNDO; x += 3 + Math.floor(r2() * 10)) if (r2() < (P.gelo ? 0.35 : 0.55)) plantas.push({ x, h: Math.round((P.gelo ? 14 + r2() * 30 : 6 + r2() * 20)), f: r2() * 6, c: r2() < 0.5 ? 0 : 1 });
+  // nenúfares e touceiras de taboa espalhados pelo lago, longe do píer
+  const longeDoPier = () => PIER.fim + 110 + r2() * (MUNDO - PIER.fim - 140);
+  const nenufares = [];
+  if (P.nenufares) for (let g = 0; g < MUNDO / 260; g++) { const x0 = longeDoPier(); for (let i = 0; i < 2 + Math.floor(r2() * 3); i++) { const w = 6 + Math.floor(r2() * 4); nenufares.push({ x: Math.round(x0 + i * 11 + r2() * 4), w, flor: w > 7 }); } }
+  const juncosFrente = [];
+  if (P.juncos) for (const [x0, n] of [[MUNDO - 22, 10], [longeDoPier(), 7], [longeDoPier(), 6]]) for (let i = 0; i < n; i++) juncosFrente.push({ x: Math.round(x0 + i * 2.3 + r2() * 2), h: 12 + Math.floor(r2() * 18), f: r2() * 6, taboa: r2() < 0.45 });
   // vinheta: cantos um pouco mais escuros
   const vin = tela(W, H), xv = vin.getContext('2d');
   const gv = xv.createRadialGradient(W / 2, H * 0.45, Math.min(W, H) * 0.45, W / 2, H * 0.45, Math.hypot(W, H) * 0.62);
   gv.addColorStop(0, 'rgba(10,8,20,0)'); gv.addColorStop(1, 'rgba(10,8,20,.32)');
   xv.fillStyle = gv; xv.fillRect(0, 0, W, H);
   fundo = {
-    ceu, terra, refl, agua, neblina, estrelas, nuvens, fiapos, brilhos, gelos, plantas, nenufares, juncosFrente, vin,
+    ceu, montesLonge, montesMedio, terra, tintaRefl, agua, neblina, espelho: tela(W + 8, HOR + 2), estrelas, nuvens, fiapos, brilhos, gelos, plantas, nenufares, juncosFrente, vin,
     janela, chamine, cach: P.cachoeira ? { x: cach, y0: Math.min(medio[cach], medio[cach + 6] ?? HOR) + 2, w: 6 } : null,
     chao0, P, ponto: E.ponto, B, HU
   };
@@ -405,10 +411,10 @@ function faseAgora() {
 const pesoFase = (F, nome) => (F.a === nome ? 1 - F.t : 0) + (F.b === nome ? F.t : 0);
 const pesoNoite = F => pesoFase(F, 'noite');
 
-/* posição do barco e da mão do pescador (usadas pela pesca) */
+/* posição do barco (em x do mundo, guardada em E.barco) e da mão do pescador (usadas pela pesca) */
 const BARCO = { x: 0, y: 0, balanco: 0, mx: 0, my: 0 };
 function posBarco(t) {
-  BARCO.x = Math.round(Math.max(W * 0.24, 230 / K + 38));   // fora de baixo do painel da pesca em telas pequenas
+  BARCO.x = Math.round(E.barco);
   BARCO.balanco = Math.sin(t * 1.3) * 0.7;
   BARCO.y = WL + Math.round(BARCO.balanco);
   BARCO.mx = BARCO.x + 9; BARCO.my = BARCO.y - 14;
@@ -441,17 +447,17 @@ const CAO = [
   ['.....k...k...', '....kdk.kdk..', '....kddkddk..', '...kdddddddk.', '...kdddddedk.', '...kddddwwwnk', '...kdddwwwkk.', '..kdddwwwk...', 'k.kddwwwwk...', 'dkddddwwdk...', 'kddddddddk...', '.kdddddddk...', '.kdkddkdkk...'],
   ['.....k...k...', '....kdk.kdk..', '....kddkddk..', '...kdddddddk.', '...kdddddedk.', '...kddddwwwnk', '...kdddwwwkk.', '..kdddwwwk...', '..kddwwwwk...', 'kkddddwwdk...', 'dddddddddk...', 'kkdddddddk...', '.kdkddkdkk...']
 ];
-function sprite(mapa, x0, y0, pal) {
-  for (let y = 0; y < mapa.length; y++) { const ln = mapa[y]; for (let x = 0; x < ln.length; x++) { const c = pal[ln[x]]; if (c) { cx.fillStyle = c; cx.fillRect(x0 + x, y0 + y, 1, 1); } } }
+function sprite(mapa, x0, y0, pal, espelha) {
+  for (let y = 0; y < mapa.length; y++) { const ln = mapa[y]; for (let x = 0; x < ln.length; x++) { const c = pal[ln[x]]; if (c) { cx.fillStyle = c; cx.fillRect(espelha ? x0 + 15 - x : x0 + x, y0 + y, 1, 1); } } }
 }
 function paletaHeroi(luz) {
   const met = s => E.equip[s] && ITENS[E.equip[s]].metal ? METAIS.find(m => m.id === ITENS[E.equip[s]].metal).cor : null;
-  const cap = met('capacete'), pei = met('peitoral'), cal = met('calcas');
+  const cap = met('capacete'), pei = met('peitoral'), cal = met('calcas'), bot = met('botas');
   const jaq = pei || '#c0503a';
   return {
     k: luz('#1a1018'), s: luz('#f0b890'), S: luz('#c8866a'), e: luz('#1a1018'), a: luz('#f0b890'), r: luz('#6a3a24'),
     h: luz(cap || '#e4c068'), H: luz(cap ? escurece(cap, 0.7) : '#a8442c'), b: luz(cap ? escurece(cap, 0.85) : '#c8a048'),
-    c: luz(jaq), l: luz(mistura(jaq, '#ffffff', 0.25)), C: luz(escurece(jaq, 0.7)), p: luz(cal || '#3a5a8a')
+    c: luz(jaq), l: luz(mistura(jaq, '#ffffff', 0.25)), C: luz(escurece(jaq, 0.7)), p: luz(cal || '#3a5a8a'), o: luz(bot || '#4a2e1c')
   };
 }
 
@@ -483,7 +489,8 @@ function atualizaCardume(dt, t) {
   while (cardume.length < alvo) {
     const it = sorteiaVisitante(), dir = Math.random() < 0.5 ? 1 : -1;
     const ini = cardume.length < alvo - 1 && !F.semeado;
-    cardume.push({ id: it.id, len: tamPeixe(it.id), dir, x: ini ? rand(0, W) : dir > 0 ? -20 : W + 20, y: WL + rand(10, F.chao0 - 6), v: rand(5, 13), f: rand(0, 6), vy: 0 });
+    const CX = CAM.x;
+    cardume.push({ id: it.id, len: tamPeixe(it.id), dir, x: ini ? CX + rand(0, W) : dir > 0 ? CX - 20 : CX + W + 20, y: WL + rand(10, F.chao0 - 6), v: rand(5, 13), f: rand(0, 6), vy: 0 });
   }
   F.semeado = true;
   for (let i = cardume.length - 1; i >= 0; i--) {
@@ -492,7 +499,7 @@ function atualizaCardume(dt, t) {
     p.y = clamp(p.y, WL + 8, WL + F.chao0 - 4);
     if (Math.random() < dt * 0.04) p.dir *= -1;
     if (Math.random() < dt * 0.15) bolhas.push({ x: p.x + p.dir * 2, y: p.y - 1, t: 0 });
-    if (p.x < -30 || p.x > W + 30) cardume.splice(i, 1);
+    if (p.x < CAM.x - 60 || p.x > CAM.x + W + 60) cardume.splice(i, 1);
   }
 }
 
@@ -501,8 +508,15 @@ function desenhaCena(t, dt) {
   if (!fundo || fundo.ponto !== E.ponto) geraFundo();
   const P = fundo.P, F = faseAgora(), noite = pesoNoite(F), B = fundo.B;
   if (F.a !== QF.a || F.b !== QF.b || Math.abs(F.t - QF.t) > 0.01) { QF = { a: F.a, b: F.b, t: F.t }; _luzCache.clear(); }
-  const misturaFase = (img, x = 0, y = 0) => { cx.globalAlpha = 1; cx.drawImage(img[F.a], x, y); if (F.t > 0) { cx.globalAlpha = F.t; cx.drawImage(img[F.b], x, y); cx.globalAlpha = 1; } };
+  // uma janela da largura da tela de cada camada, a partir de sx, misturando as duas paletas da hora
+  const faixa = (img, sx = 0, y = 0) => {
+    const a = img[F.a], h = a.height;
+    cx.globalAlpha = 1; cx.drawImage(a, sx, 0, W, h, 0, y, W, h);
+    if (F.t > 0) { cx.globalAlpha = F.t; cx.drawImage(img[F.b], sx, 0, W, h, 0, y, W, h); cx.globalAlpha = 1; }
+  };
   const ceuF = k => mistura(CEUS[F.a][k], CEUS[F.b][k], F.t);
+  const CX = Math.round(CAM.x), oL = Math.round(CX * PAR.longe), oM = Math.round(CX * PAR.medio), oT = Math.round(CX * PAR.terra);
+  const modW = (v, m) => ((v % m) + m) % m;
 
   // clima: de vez em quando chove (na Baía, neva mais forte)
   clima.t -= dt;
@@ -511,7 +525,7 @@ function desenhaCena(t, dt) {
   const chuva = clima.chuva, sol = 1 - chuva * 0.8;
 
   // céu e estrelas
-  misturaFase(fundo.ceu);
+  faixa(fundo.ceu);
   if (noite > 0.05) for (const s of fundo.estrelas) {
     const a = noite * sol * (0.35 + 0.65 * Math.abs(Math.sin(t * 0.7 + s.f * 3))) * (s.b > 0.9 ? 1 : 0.55);
     cx.fillStyle = `rgba(255,248,225,${a.toFixed(2)})`; cx.fillRect(s.x, s.y, 1, 1);
@@ -549,9 +563,9 @@ function desenhaCena(t, dt) {
     cx.fillRect(ax - 2, ay - 2, 2, 2); cx.fillRect(ax + 2, ay + 1, 2, 1); cx.fillRect(ax - 1, ay + 3, 1, 1); cx.fillRect(ax + 3, ay - 3, 1, 1);
   }
 
-  // nuvens: fiapos baixos e devagar, as grandes mais rápidas
+  // nuvens: fiapos baixos e devagar, as grandes mais rápidas (e andam um pouquinho com a câmera)
   for (const grupo of [fundo.fiapos, fundo.nuvens]) for (const n of grupo) {
-    n.x += n.v * dt * (1 + chuva); const span = W + n.w + 40, nx = Math.round((n.x % span) - n.w - 20);
+    n.x += n.v * dt * (1 + chuva); const span = W + n.w + 40, nx = Math.round(modW(n.x - CX * 0.05, span) - n.w - 20);
     cx.globalAlpha = 0.95; cx.drawImage(n.img[F.a], nx, Math.round(n.y));
     if (F.t > 0) { cx.globalAlpha = 0.95 * F.t; cx.drawImage(n.img[F.b], nx, Math.round(n.y)); }
     cx.globalAlpha = 1;
@@ -570,11 +584,41 @@ function desenhaCena(t, dt) {
     cx.fillRect(x - 2, y - (asa ? 2 : 0), 1, 1); cx.fillRect(x + 2, y - (asa ? 2 : 0), 1, 1);
   }
 
-  // superfície do lago: o reflexo ondulando, linha por linha
-  for (let r = 0; r < B; r++) {
+  // a paisagem em camadas: montanhas de longe, do meio (com a cachoeira caindo delas) e a margem
+  faixa(fundo.montesLonge, oL);
+  faixa(fundo.montesMedio, oM);
+  if (fundo.cach) {
+    const { x, y0, w } = fundo.cach, qx = x - oM;
+    if (qx > -w && qx < W) {
+      for (let y = y0; y < HOR; y++) for (let i = 0; i < w; i++) {
+        const v = ((y - t * 40 + i * 5) % 9 + 9) % 9;
+        cx.fillStyle = luz(v < 2 ? '#ffffff' : v < 5 ? '#cfe8f0' : '#8ec0d0', 0.05); cx.fillRect(qx + i, y, 1, 1);
+      }
+    }
+  }
+  faixa(fundo.terra, oT);
+  // janela acesa e fumaça da chaminé (a fumaça fica na camada da margem)
+  if (fundo.janela) {
+    const j = fundo.janela, jx = j.x - oT, acesa = Math.max(noite, pesoFase(F, 'crep') * 0.8);
+    if (acesa > 0.05 && jx > -10 && jx < W + 10) {
+      cx.fillStyle = `rgba(255,200,100,${(acesa * 0.9).toFixed(2)})`; cx.fillRect(jx, j.y, 2, 1); cx.fillRect(jx + 3, j.y, 2, 1); cx.fillRect(jx, j.y + 2, 2, 2); cx.fillRect(jx + 3, j.y + 2, 2, 2);
+      circulo(jx + 2, j.y + 2, 5, `rgba(255,180,90,${(acesa * 0.12).toFixed(2)})`);
+    }
+    if (Math.random() < dt * 2.5) particulas.push({ tipo: 'fumaca', x: fundo.chamine.x, y: fundo.chamine.y, t: 0 });
+  }
+
+  // superfície do lago: o céu e a margem que acabaram de ser pintados, de cabeça para baixo e ondulando linha por linha
+  const esp = fundo.espelho, xe = esp.getContext('2d'), HE = HOR + 2;
+  xe.drawImage(cv, 0, 0, W, HE, 4, 0, W, HE);
+  xe.drawImage(cv, 0, 0, 1, HE, 0, 0, 4, HE); xe.drawImage(cv, W - 1, 0, 1, HE, W + 4, 0, 4, HE);
+  for (let r = 2; r < B; r++) {
     const u = r / B, dx = Math.round(Math.sin(t * 1.4 + r * 0.6 + Math.sin(t * 0.5 + r * 0.13)) * (0.4 + u * 2.2));
-    cx.drawImage(fundo.refl[F.a], 4 - dx, r, W, 1, 0, HOR + r, W, 1);
-    if (F.t > 0) { cx.globalAlpha = F.t; cx.drawImage(fundo.refl[F.b], 4 - dx, r, W, 1, 0, HOR + r, W, 1); cx.globalAlpha = 1; }
+    cx.drawImage(esp, 4 - dx, Math.max(0, HOR - Math.floor(r * 1.15)), W, 1, 0, HOR + r, W, 1);
+  }
+  faixa(fundo.tintaRefl, 0, HOR);
+  if (fundo.janela) {
+    const j = fundo.janela, jx = j.x - oT, acesa = Math.max(noite, pesoFase(F, 'crep') * 0.8);
+    if (acesa > 0.05) { cx.fillStyle = `rgba(255,190,90,${(acesa * 0.35).toFixed(2)})`; cx.fillRect(jx, HOR + 3, 5, 1); cx.fillRect(jx + 1, HOR + 5, 3, 1); }
   }
   // brilho do sol (ou da lua) na água
   const corBrilho = dia ? `rgba(${hexRgb(ceuF('halo'))},` : 'rgba(225,232,255,';
@@ -584,18 +628,18 @@ function desenhaCena(t, dt) {
     cx.fillStyle = corBrilho + ((dia ? 0.45 : 0.3) * sol).toFixed(2) + ')';
     cx.fillRect(ax - w + Math.round(Math.sin(t + y * 0.7) * 2), y, w * 2, 1);
   }
-  // riscos de luz correndo com a correnteza
+  // riscos de luz correndo com a correnteza (andam junto com a água)
   const corB = mistura('#ffffff', ceuF('base'), 0.35);
   cx.fillStyle = corB;
   for (const b of fundo.brilhos) {
     const vis = Math.sin(t * 1.2 + b.f); if (vis < 0.25) continue;
-    const x = ((b.x + t * P.corr * (0.3 + (b.y - HOR) / B)) % (W + 10)) - 5;
+    const x = modW(b.x + t * P.corr * (0.3 + (b.y - HOR) / B) - CX, W + 10) - 5;
     cx.globalAlpha = 0.4 * vis * sol; cx.fillRect(Math.round(x), b.y, b.l, 1);
   }
   cx.globalAlpha = 1;
   // gelo boiando
   for (const g of fundo.gelos) {
-    const gx = Math.round(((g.x + t * 1.2) % (W + 40)) - 20), gy = g.y + Math.round(Math.sin(t + g.x) * 0.5);
+    const gx = Math.round(modW(g.x + t * 1.2 - CX * 0.7, W + 40) - 20), gy = g.y + Math.round(Math.sin(t + g.x) * 0.5);
     cx.fillStyle = luz('#f0f8ff'); cx.fillRect(gx + 1, gy - 1, g.w - 3, 1); cx.fillRect(gx, gy, g.w, 1);
     cx.fillStyle = luz('#a8c8e0'); cx.fillRect(gx, gy + 1, g.w, 1);
     cx.fillStyle = 'rgba(200,230,255,.25)'; cx.fillRect(gx + 1, gy + 2, g.w - 2, 1);
@@ -612,37 +656,15 @@ function desenhaCena(t, dt) {
       cx.fillStyle = 'rgba(230,245,255,.35)'; cx.fillRect(x + (s > 0.8 ? 6 : 3), y + 1, 3, 1);
     });
   }
-
-  // a paisagem
-  misturaFase(fundo.terra);
-  // cachoeira no Rio da Pedra
-  if (fundo.cach) {
-    const { x: qx, y0, w } = fundo.cach;
-    for (let y = y0; y < HOR; y++) for (let i = 0; i < w; i++) {
-      const v = ((y - t * 40 + i * 5) % 9 + 9) % 9;
-      cx.fillStyle = luz(v < 2 ? '#ffffff' : v < 5 ? '#cfe8f0' : '#8ec0d0', 0.05); cx.fillRect(qx + i, y, 1, 1);
-    }
-    for (let i = 0; i < 4; i++) { cx.fillStyle = `rgba(240,250,255,${(0.35 + 0.2 * Math.sin(t * 6 + i)).toFixed(2)})`; circulo(qx + 3 + Math.round(Math.sin(t * 3 + i * 2) * 3), HOR - 1, 2 + (i % 2), cx.fillStyle); }
-  }
-  // janela acesa e fumaça da chaminé
-  if (fundo.janela) {
-    const j = fundo.janela, acesa = Math.max(noite, pesoFase(F, 'crep') * 0.8);
-    if (acesa > 0.05) {
-      cx.fillStyle = `rgba(255,200,100,${(acesa * 0.9).toFixed(2)})`; cx.fillRect(j.x, j.y, 2, 1); cx.fillRect(j.x + 3, j.y, 2, 1); cx.fillRect(j.x, j.y + 2, 2, 2); cx.fillRect(j.x + 3, j.y + 2, 2, 2);
-      circulo(j.x + 2, j.y + 2, 5, `rgba(255,180,90,${(acesa * 0.12).toFixed(2)})`);
-      cx.fillStyle = `rgba(255,190,90,${(acesa * 0.35).toFixed(2)})`; cx.fillRect(j.x, HOR + 3, 5, 1); cx.fillRect(j.x + 1, HOR + 5, 3, 1);
-    }
-    if (Math.random() < dt * 2.5) particulas.push({ tipo: 'fumaca', x: fundo.chamine.x, y: fundo.chamine.y, t: 0 });
-  }
   // vagalumes perto da margem
-  if (P.vagalumes && noite > 0.5 && chuva < 0.3 && particulas.filter(p => p.tipo === 'luz').length < 26 && Math.random() < dt * 4) particulas.push({ tipo: 'luz', x: rand(0, W), y: HOR - rand(1, 18), f: rand(0, 6), vida: rand(4, 9) });
+  if (P.vagalumes && noite > 0.5 && chuva < 0.3 && particulas.filter(p => p.tipo === 'luz').length < 26 && Math.random() < dt * 4) particulas.push({ tipo: 'luz', x: oT + rand(0, W), y: HOR - rand(1, 18), f: rand(0, 6), vida: rand(4, 9) });
 
   // neblina de manhã cedo (e um pouco na Baía e na chuva)
   const nevoa = clamp(Math.exp(-Math.pow((h - 6.6) / 1.3, 2)) * 0.85 + (P.gelo ? 0.2 : 0) + chuva * 0.35, 0, 0.9);
   if (nevoa > 0.03) {
     const nh = fundo.neblina.dia.height, y0 = Math.round(HOR - nh * 0.55);
     for (const [vel, al, dy] of [[2, 0.6, 0], [5, 0.4, 4]]) {
-      const off = Math.round((t * vel) % W);
+      const off = Math.round(modW(t * vel + CX * PAR.terra, W));
       cx.globalAlpha = nevoa * al; cx.drawImage(fundo.neblina[F.a], off, 0, W, nh, 0, y0 + dy, W, nh);
       if (F.t > 0) { cx.globalAlpha = nevoa * al * F.t; cx.drawImage(fundo.neblina[F.b], off, 0, W, nh, 0, y0 + dy, W, nh); }
     }
@@ -661,21 +683,26 @@ function desenhaCena(t, dt) {
   }
 
   // ===== embaixo d'água =====
-  misturaFase(fundo.agua, 0, WL);
+  faixa(fundo.agua, CX, WL);
   // raios de luz entrando na água
   const claridade = (1 - noite) * sol;
   if (claridade > 0.05) {
     cx.fillStyle = '#e8fff8';
     for (let i = 0; i < 6; i++) {
-      const bx = ((i * W / 5 + t * 3 + Math.sin(t * 0.3 + i) * 12) % (W + 60)) - 30, lw = 6 + (i % 3) * 4;
+      const bx = modW(i * W / 5 + t * 3 + Math.sin(t * 0.3 + i) * 12 - CX, W + 60) - 30, lw = 6 + (i % 3) * 4;
       cx.globalAlpha = claridade * 0.07 * (0.6 + 0.4 * Math.sin(t * 0.7 + i * 1.7));
       cx.beginPath(); cx.moveTo(bx, WL); cx.lineTo(bx + lw, WL); cx.lineTo(bx + lw + 34, H); cx.lineTo(bx + 16, H); cx.closePath(); cx.fill();
     }
     cx.globalAlpha = 1;
   }
+
+  // daqui até o barco, tudo está em x do mundo
+  cx.save(); cx.translate(-CX, 0);
+  const visivel = (x, folga = 40) => x > CX - folga && x < CX + W + folga;
   // plantas balançando
   const tintaAgua = luz(P.aguaFunda), corAlga = [luz(P.alga[0]), luz(P.alga[1])];
   for (const p of fundo.plantas) {
+    if (!visivel(p.x)) continue;
     const base = WL + fundo.chao0 + 4;
     for (let j = 0; j < p.h; j++) {
       const sx = Math.round(p.x + Math.sin(t * 1.1 + p.f + j * 0.18) * j * 0.09);
@@ -685,7 +712,9 @@ function desenhaCena(t, dt) {
     }
   }
   // caules dos nenúfares
-  for (const n of fundo.nenufares) { cx.fillStyle = mistura(corAlga[1], tintaAgua, 0.55); cx.globalAlpha = 0.6; for (let y = WL + 1; y < WL + fundo.chao0 + 6; y += 1) cx.fillRect(n.x + Math.round(Math.sin(t * 0.8 + y * 0.1) * 1.5), y, 1, 1); cx.globalAlpha = 1; }
+  for (const n of fundo.nenufares) { if (!visivel(n.x)) continue; cx.fillStyle = mistura(corAlga[1], tintaAgua, 0.55); cx.globalAlpha = 0.6; for (let y = WL + 1; y < WL + fundo.chao0 + 6; y += 1) cx.fillRect(n.x + Math.round(Math.sin(t * 0.8 + y * 0.1) * 1.5), y, 1, 1); cx.globalAlpha = 1; }
+  // o píer e a barraca do pescador, no canto esquerdo do lago (as estacas ficam atrás dos peixes)
+  if (visivel(0, PIER.fim + 60)) desenhaPier(t, noite);
   // peixes nadando (mais apagados quanto mais fundo)
   atualizaCardume(dt, t);
   for (const p of cardume) {
@@ -700,7 +729,7 @@ function desenhaCena(t, dt) {
   }
   // a linha d'água: borda clara ondulando e um brilho logo embaixo
   const corSup = mistura('#ffffff', ceuF('base'), 0.4);
-  for (let x = 0; x < W; x++) {
+  for (let x = CX; x < CX + W; x++) {
     const o = Math.sin(x * 0.18 + t * 2.2) + Math.sin(x * 0.07 - t * 1.3) > 1.1 ? -1 : 0;
     cx.fillStyle = corSup; cx.globalAlpha = 0.75 * (0.4 + 0.6 * (1 - noite)); cx.fillRect(x, WL + o, 1, 1);
     cx.globalAlpha = 0.18; cx.fillRect(x, WL + 1 + o, 1, 1);
@@ -709,13 +738,14 @@ function desenhaCena(t, dt) {
   cx.globalAlpha = 1;
   // nenúfares na superfície
   for (const n of fundo.nenufares) {
+    if (!visivel(n.x)) continue;
     cx.fillStyle = luz('#3e7a34'); cx.fillRect(n.x - (n.w >> 1), WL - 1, n.w, 1);
     cx.fillStyle = luz('#5a9a44'); cx.fillRect(n.x - (n.w >> 1) + 1, WL - 2, n.w - 3, 1);
     if (n.flor) { cx.fillStyle = luz('#f4c8d8'); cx.fillRect(n.x - 1, WL - 4, 3, 2); cx.fillStyle = luz('#ffffff'); cx.fillRect(n.x, WL - 5, 1, 1); cx.fillStyle = luz('#f0d050'); cx.fillRect(n.x, WL - 4, 1, 1); }
   }
 
-  // peixe pulando, de vez em quando
-  if (!pulo && Math.random() < dt * 0.06) { const it = sorteiaVisitante(); pulo = { x: rand(W * 0.45, W * 0.95), t: 0, id: it.id, len: Math.min(12, tamPeixe(it.id)) }; }
+  // peixe pulando, de vez em quando (longe do píer)
+  if (!pulo && Math.random() < dt * 0.06) { const it = sorteiaVisitante(); pulo = { x: Math.max(PIER.fim + 20, CX + rand(W * 0.45, W * 0.95)), t: 0, id: it.id, len: Math.min(12, tamPeixe(it.id)) }; }
   if (pulo) {
     pulo.t += dt;
     const k = pulo.t / 1.0;
@@ -736,8 +766,9 @@ function desenhaCena(t, dt) {
     if (rr > 2) { cx.fillRect(Math.round(o.x - rr * 0.6), WL - 2, 2, 1); cx.fillRect(Math.round(o.x + rr * 0.6 - 1), WL - 2, 2, 1); }
   }
 
-  // taboas e juncos na frente, nos cantos
+  // taboas e juncos na frente
   for (const j of fundo.juncosFrente) {
+    if (!visivel(j.x)) continue;
     const bal = Math.sin(t * 1.3 + j.f);
     for (let y = 0; y < j.h; y++) {
       const sx = Math.round(j.x + bal * (y / j.h) * 1.5), py = WL + 6 - y;
@@ -747,25 +778,28 @@ function desenhaCena(t, dt) {
     if (j.taboa) { const sx = Math.round(j.x + bal * 1.5); cx.fillStyle = luz('#6a4228'); cx.fillRect(sx, WL + 6 - j.h + 2, 2, 5); cx.fillStyle = luz('#8a5a34'); cx.fillRect(sx, WL + 6 - j.h + 2, 1, 4); }
   }
 
-  // barco, pescador e cachorro
+  // barco, pescador e cachorro; o pescador anda pelo píer quando desce
   posBarco(t);
   desenhaBarco(BARCO.x, BARCO.y, t, noite);
+  if (PE.ativo) desenhaPescadorAPe(t, noite);
+  desenhaTeclaE(t);
 
   for (let i = gotas.length - 1; i >= 0; i--) {
     const g = gotas[i]; g.t += dt; g.vy += 140 * dt; g.x += g.vx * dt; g.y += g.vy * dt;
     if (g.t > 0.8 || (g.vy > 0 && g.y > WL)) { gotas.splice(i, 1); continue; }
     cx.fillStyle = 'rgba(235,248,255,.9)'; cx.fillRect(Math.round(g.x), Math.round(g.y), 1, 1);
   }
+  cx.restore();
 
   // chuva: céu fechado, pingos inclinados e respingos na água
   if (chuva > 0.02) {
     cx.fillStyle = luz('#4a5468'); cx.globalAlpha = chuva * 0.35; cx.fillRect(0, 0, W, WL); cx.globalAlpha = chuva * 0.2; cx.fillRect(0, WL, W, H - WL); cx.globalAlpha = 1;
     if (!P.neva) {
       if (Math.random() < chuva) for (let i = 0; i < Math.ceil(W / 25 * chuva); i++) particulas.push({ tipo: 'chuva', x: rand(-20, W), y: rand(-10, 0), v: rand(150, 200) });
-      if (Math.random() < chuva * dt * 30) onda(rand(0, W), WL, 3);
+      if (Math.random() < chuva * dt * 30) onda(CX + rand(0, W), WL, 3);
     }
   }
-  // neve, chuva, vagalumes e fumaça
+  // neve e chuva (na tela), vagalumes e fumaça (na camada da margem)
   if (P.neva && particulas.length < W / 2.5 * (1 + chuva * 2) && Math.random() < 0.8) particulas.push({ tipo: 'neve', x: rand(-10, W), y: -2, v: rand(6, 14) * (1 + chuva), f: rand(0, 6), g: Math.random() < 0.2 });
   for (let i = particulas.length - 1; i >= 0; i--) {
     const p = particulas[i];
@@ -780,13 +814,13 @@ function desenhaCena(t, dt) {
     } else if (p.tipo === 'fumaca') {
       p.t += dt; p.y -= 5 * dt; p.x += (2 + Math.sin(t + p.t) * 2) * dt;
       if (p.t > 5) { particulas.splice(i, 1); continue; }
-      cx.fillStyle = `rgba(${hexRgb(luz('#d8d4d0'))},${(0.4 * (1 - p.t / 5)).toFixed(2)})`; const s = 1 + Math.floor(p.t * 0.6); cx.fillRect(Math.round(p.x), Math.round(p.y), s, s);
+      cx.fillStyle = `rgba(${hexRgb(luz('#d8d4d0'))},${(0.4 * (1 - p.t / 5)).toFixed(2)})`; const s = 1 + Math.floor(p.t * 0.6); cx.fillRect(Math.round(p.x) - oT, Math.round(p.y), s, s);
     } else {
       p.vida -= dt; p.x += Math.sin(t * 0.7 + p.f) * 3 * dt; p.y += Math.cos(t * 0.9 + p.f) * 2 * dt;
       if (p.vida <= 0 || noite < 0.3) { particulas.splice(i, 1); continue; }
-      const a = Math.max(0, Math.sin(t * 3 + p.f)) * Math.min(1, p.vida);
-      cx.fillStyle = `rgba(230,255,140,${a.toFixed(2)})`; cx.fillRect(Math.round(p.x), Math.round(p.y), 1, 1);
-      cx.fillStyle = `rgba(230,255,140,${(a * 0.25).toFixed(2)})`; cx.fillRect(Math.round(p.x) - 1, Math.round(p.y), 3, 1); cx.fillRect(Math.round(p.x), Math.round(p.y) - 1, 1, 3);
+      const a = Math.max(0, Math.sin(t * 3 + p.f)) * Math.min(1, p.vida), lx = Math.round(p.x) - oT;
+      cx.fillStyle = `rgba(230,255,140,${a.toFixed(2)})`; cx.fillRect(lx, Math.round(p.y), 1, 1);
+      cx.fillStyle = `rgba(230,255,140,${(a * 0.25).toFixed(2)})`; cx.fillRect(lx - 1, Math.round(p.y), 3, 1); cx.fillRect(lx, Math.round(p.y) - 1, 1, 3);
     }
   }
   cx.drawImage(fundo.vin, 0, 0);
@@ -806,7 +840,7 @@ function desenhaBarco(bx, by, t, noite) {
   // de noite a lanterna esquenta e clareia o pescador e o cachorro
   const L = c => acesa ? mistura(luz(c), mistura(c, '#ffb060', 0.25), 0.35 * Math.max(noite, 0.5)) : luz(c);
   sprite(CAO[cauda], bx + 12, by - 18, { k: L('#1a1018'), d: L('#d08e4c'), w: L('#f4e4c8'), e: pisca ? L('#d08e4c') : L('#1a1018'), n: L('#2a1810') });
-  sprite(HEROI, bx - 6, by - 24 + (Math.floor(t * 0.8) % 2), paletaHeroi(L));
+  if (!PE.ativo) sprite(HEROI, bx - 6, by - 24 + (Math.floor(t * 0.8) % 2), paletaHeroi(L));
   // motor de popa
   cx.fillStyle = luz('#3a3e44'); cx.fillRect(x0 - 3, by + 1, 2, 9);
   cx.fillStyle = mistura(luz('#3a3e44'), tintaAgua, 0.4); cx.fillRect(x0 - 5, by + 8, 5, 2);

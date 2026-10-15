@@ -17,6 +17,7 @@ function novoEstado() {
     inv: { minhoca: 6, sem_batata: 4, sem_cenoura: 2 },
     equip: { capacete: null, peitoral: null, calcas: null, botas: null, vara: 'vara_bambu', picareta: 'picareta_velha' },
     ponto: 'lago', pontos: { lago: true },
+    barco: null,                       // x do barco no lago (null = perto do píer)
     auto: false,
     colecao: {},                       // id do peixe -> { n, maior }
     mina: { veio: null, prog: 0 },

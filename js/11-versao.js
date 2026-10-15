@@ -3,8 +3,18 @@
 /* ================= versão e novidades =================
    MAIOR.MENOR.CORREÇÃO, em 0.x enquanto o jogo está em desenvolvimento. MENOR sobe a cada leva de conteúdo novo,
    CORREÇÃO quando só conserta ou ajusta. Quem publicar sobe VERSAO e põe a entrada nova no topo de NOVIDADES. */
-const VERSAO = '0.2.0';
+const VERSAO = '0.3.0';
 const NOVIDADES = [
+  {
+    v: '0.3.0', data: '15/10/2026', titulo: 'Rumo ao píer',
+    itens: [
+      'O barco anda! Use A e D (ou as setas) para navegar pelo lago, e o cenário passa em camadas, as montanhas devagar e a margem mais rápido.',
+      'No canto esquerdo de todo ponto de pesca tem um píer com a barraca do pescador, onde a dona Lurdes atende.',
+      'A loja agora fica na barraca: encoste o barco no píer, aperte E para descer, ande até o balcão e aperte E de novo.',
+      'No celular aparecem setas na tela e um botão para fazer o mesmo que o E.',
+      'O Modo calmo passou para a tecla C.'
+    ]
+  },
   {
     v: '0.2.0', data: '15/10/2026', titulo: 'Um lago de verdade',
     itens: [

@@ -40,7 +40,7 @@ function pontaVara() {
 function lanca(xAlvo) {
   if (PESCA.estado !== 'parado') return;
   initAudio();
-  const minX = BARCO.x + 50, maxX = W - 12;
+  const minX = BARCO.x + 50, maxX = Math.max(minX, CAM.x + W - 12);
   const x = clamp(xAlvo ?? rand(minX, maxX), minX, maxX);
   const y = WL;   // a boia cai na linha d'água; o anzol fica pendurado embaixo
   const isca = iscaAtual(); if (isca) tira(isca);
@@ -92,6 +92,8 @@ function atualizaPesca(dt) {
     case 'parado':
       P.parado += dt;
       P.boia.x = tip.x; P.boia.y = tip.y + 6;
+      if (!pescaLivre()) { P.parado = 0; estadoPesca(naBarraca() ? 'Aperte E para abrir a loja' : 'No píer: ande até a barraca'); break; }
+      if (velBarco) { P.parado = 0; estadoPesca('Navegando...'); break; }
       estadoPesca(E.auto ? 'Preparando o próximo lançamento...' : 'Clique na água para lançar');
       if (E.auto && P.parado > 1.4) lanca();
       break;
@@ -139,7 +141,14 @@ function atualizaPesca(dt) {
   }
 }
 
+// a pesca acontece na água, então é desenhada em x do mundo (a câmera desloca tudo)
 function desenhaPesca(t) {
+  if (PE.ativo) return;
+  cx.save(); cx.translate(-Math.round(CAM.x), 0);
+  desenhaPescaMundo(t);
+  cx.restore();
+}
+function desenhaPescaMundo(t) {
   const P = PESCA, tip = pontaVara();
   // vara
   const vara = varaAtual(), corV = vara.metal ? METAIS.find(m => m.id === vara.metal).cor : '#c8b060';
@@ -198,7 +207,7 @@ function desenhaPesca(t) {
   }
   // barra de tensão e de progresso enquanto puxa
   if (P.estado === 'puxando') {
-    const w = 52, x0 = Math.round(clamp(bx - w / 2, 4, W - w - 4)), y0 = Math.round(Math.max(4, WL - 30));
+    const w = 52, x0 = Math.round(clamp(bx - w / 2, CAM.x + 4, CAM.x + W - w - 4)), y0 = Math.round(Math.max(4, WL - 30));
     cx.fillStyle = '#0b0710'; cx.fillRect(x0 - 2, y0 - 2, w + 4, 12);
     cx.fillStyle = '#7a5a34'; cx.fillRect(x0 - 1, y0 - 1, w + 2, 1); cx.fillRect(x0 - 1, y0 + 8, w + 2, 1); cx.fillRect(x0 - 1, y0 - 1, 1, 10); cx.fillRect(x0 + w, y0 - 1, 1, 10);
     cx.fillStyle = '#1a1420'; cx.fillRect(x0, y0, w, 4);
@@ -233,6 +242,7 @@ function linha(x0, y0, x1, y1, cor, cabo) {
 /* entrada: clique na água ou Espaço */
 function acaoPesca(xTela, desce) {
   const P = PESCA;
+  if (desce && !pescaLivre()) return;
   if (desce) {
     initAudio();
     if (P.estado === 'parado' && !E.auto) lanca(xTela);
@@ -241,7 +251,7 @@ function acaoPesca(xTela, desce) {
     else if (P.estado === 'esperando' && !E.auto) recolhe('Linha recolhida.');
   } else P.segura = false;
 }
-cv.addEventListener('pointerdown', e => { if (!E || !jogando) return; acaoPesca(e.clientX / K, true); });
+cv.addEventListener('pointerdown', e => { if (!E || !jogando) return; acaoPesca(e.clientX / K + CAM.x, true); });
 addEventListener('pointerup', () => { if (E) acaoPesca(0, false); });
 addEventListener('keydown', e => {
   if (!E || !jogando || e.repeat) return;

@@ -12,6 +12,8 @@ const TITULOS = { pesca: 'Pesca', cozinha: 'Cozinha', mina: 'Mina', forja: 'Forj
 
 function abrePainel(nome) {
   if (painelAberto === nome) return fechaPainel();
+  // a loja só abre no balcão da barraca do pescador, no píer
+  if (nome === 'mercado' && !naBarraca()) { aviso('A loja fica na barraca do pescador, no píer à esquerda. Encoste o barco e aperte E.'); return; }
   painelAberto = nome;
   $('pTitulo').textContent = TITULOS[nome];
   $('painel').hidden = false; document.body.classList.add('com-painel');
@@ -258,6 +260,7 @@ function viaja(id) {
   const p = PONTOS.find(q => q.id === id);
   if (calorTotal() < p.calor) { aviso('Frio demais! Precisa de ' + p.calor + ' de calor.'); return; }
   E.ponto = id; recolhe(); $('hLocal').textContent = p.nome;
+  PE.ativo = PE.atraca = false;
   fechaPainel();
   aviso(`Você chegou em <b>${p.nome}</b>`);
 }

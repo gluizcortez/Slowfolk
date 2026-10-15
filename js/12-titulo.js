@@ -100,6 +100,7 @@ function montaTitulo() {
   function entra(continuando) {
     root.classList.add('out'); setTimeout(() => root.remove(), 300);
     Object.assign(PESCA, { estado: 'parado', parado: 0, segura: false });
+    Object.assign(PE, { ativo: false, atraca: false });
     jogando = true;
     $('hud').hidden = false;
     $('hLocal').textContent = pontoAtual().nome;
@@ -111,7 +112,8 @@ function montaTitulo() {
       if (r) mostraFora(r);
     } else {
       aviso('Bem-vindo ao Slowfolk! Clique na água para lançar a linha.');
-      setTimeout(() => aviso('Dica: o Modo calmo (tecla A) pesca sozinho, até com o jogo fechado.'), 3200);
+      setTimeout(() => aviso('A e D (ou as setas) movem o barco. A loja fica na barraca do píer: encoste e aperte E.'), 3200);
+      setTimeout(() => aviso('Dica: o Modo calmo (tecla C) pesca sozinho, até com o jogo fechado.'), 6400);
     }
     salvar();
   }

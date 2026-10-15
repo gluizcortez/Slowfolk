@@ -28,7 +28,7 @@ addEventListener('keydown', e => {
   if (!E || !jogando) return;
   if (e.code === 'Escape') { if (painelAberto) fechaPainel(); }
   else if (e.code === 'KeyM') alternaMudo();
-  else if (e.code === 'KeyA' && !e.repeat) alternaAuto();
+  else if (e.code === 'KeyC' && !e.repeat) alternaAuto();
   else if (/^Digit[1-8]$/.test(e.code)) { const b = document.querySelectorAll('#doca button')[+e.code.slice(5) - 1]; if (b) abrePainel(b.dataset.p); }
 });
 $('bAuto').addEventListener('click', () => { initAudio(); alternaAuto(); });
