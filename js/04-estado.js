@@ -17,7 +17,8 @@ function novoEstado() {
     inv: { minhoca: 6, sem_batata: 4, sem_cenoura: 2 },
     equip: { capacete: null, peitoral: null, calcas: null, botas: null, vara: 'vara_bambu', picareta: 'picareta_velha' },
     ponto: 'lago', pontos: { lago: true },
-    barco: null,                       // x do barco no lago (null = perto do píer)
+    barco: null,
+    barcoUp: { motor: 0, portavara: 0, sonar: 0, toldo: 0 },   // níveis das melhorias do barco                       // x do barco no lago (null = perto do píer)
     auto: false,
     colecao: {},                       // id do peixe -> { n, maior }
     mina: { veio: null, prog: 0 },
@@ -92,8 +93,10 @@ function come(id) {
   aviso(`Você comeu ${it.nome}: ${EFEITOS[tipo].fmt(valor)} por ${fmtTempo(dur)}`);
   try { sfx.come(); } catch (e) { }
 }
-const calorTotal = () => doEquip('calor') + efeito('calor');
-const sorteTotal = () => doEquip('sorte') + efeito('sorte') + (iscaAtual() ? ITENS[iscaAtual()].sorte : 0);
+// quanto uma melhoria do barco soma no nível atual (0 se não tem)
+const doBarco = id => (E.barcoUp[id] || 0) * UPGRADES_BARCO.find(u => u.id === id).por;
+const calorTotal = () => doEquip('calor') + efeito('calor') + doBarco('toldo');
+const sorteTotal = () => doEquip('sorte') + efeito('sorte') + doBarco('sonar') + (iscaAtual() ? ITENS[iscaAtual()].sorte : 0);
 
 function iscaAtual() { for (const id of ISCAS) if (tem(id)) return id; return null; }
 
@@ -126,6 +129,7 @@ function carregar() {
   E = Object.assign(base, s);
   for (const h of HABS) if (!E.hab[h.id]) E.hab[h.id] = { xp: 0 };
   E.equip = Object.assign(base.equip, s.equip);
+  E.barcoUp = Object.assign(base.barcoUp, s.barcoUp);
   return true;
 }
 function apagaSave() { try { localStorage.removeItem(SAVE_KEY); } catch (e) { } }

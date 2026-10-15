@@ -844,8 +844,29 @@ function desenhaBarco(bx, by, t, noite) {
   // motor de popa
   cx.fillStyle = luz('#3a3e44'); cx.fillRect(x0 - 3, by + 1, 2, 9);
   cx.fillStyle = mistura(luz('#3a3e44'), tintaAgua, 0.4); cx.fillRect(x0 - 5, by + 8, 5, 2);
-  cx.fillStyle = luz('#d8d8d0'); cx.fillRect(x0 - 7, by - 10, 7, 6); cx.fillStyle = luz('#a8aca8'); cx.fillRect(x0 - 7, by - 5, 7, 2);
-  cx.fillStyle = luz('#c03a2c'); cx.fillRect(x0 - 7, by - 8, 7, 1); cx.fillStyle = luz('#1a1018'); cx.fillRect(x0 - 8, by - 10, 1, 7); cx.fillRect(x0 - 7, by - 11, 7, 1);
+  // a capa do motor muda de cor a cada melhoria (branca, vermelha, azul, preta com dourado)
+  const up = E.barcoUp || {}, CAPAS = [['#d8d8d0', '#c03a2c'], ['#c03a2c', '#f0e8d8'], ['#3a6ac0', '#f0e8d8'], ['#2a2a30', '#e8b830']], [capa, faixa] = CAPAS[up.motor || 0];
+  cx.fillStyle = luz(capa); cx.fillRect(x0 - 7, by - 10, 7, 6); cx.fillStyle = luz(escurece(capa, 0.75)); cx.fillRect(x0 - 7, by - 5, 7, 2);
+  cx.fillStyle = luz(faixa); cx.fillRect(x0 - 7, by - 8, 7, 1); cx.fillStyle = luz('#1a1018'); cx.fillRect(x0 - 8, by - 10, 1, 7); cx.fillRect(x0 - 7, by - 11, 7, 1);
+  // porta-vara na popa, com uma segunda vara armada
+  if (up.portavara) {
+    cx.fillStyle = luz('#5a6068'); cx.fillRect(x0 + 5, by - 9, 2, 3);
+    for (let i = 0; i < 14; i++) { cx.fillStyle = luz(i < 3 ? '#3a2414' : '#c8b060'); cx.fillRect(x0 + 6 - Math.round(i * 0.6), by - 9 - i, 1, 1); }
+    cx.fillStyle = 'rgba(235,235,225,.5)'; for (let y = by - 22; y < WL; y += 2) cx.fillRect(x0 - 2 - Math.round((y - by + 22) * 0.15), y, 1, 1);
+  }
+  // sonar: telinha verde piscando ao lado da caixa de pesca
+  if (up.sonar) {
+    cx.fillStyle = luz('#1a1018'); cx.fillRect(bx - 26, by - 12, 6, 6);
+    cx.fillStyle = '#123a2a'; cx.fillRect(bx - 25, by - 11, 4, 4);
+    if (Math.floor(t * 3) % 3) { cx.fillStyle = '#7aff9a'; cx.fillRect(bx - 25 + Math.floor(t * 3) % 4, by - 10, 1, 1); }
+  }
+  // toldo listrado por cima do pescador
+  if (up.toldo) {
+    cx.fillStyle = luz('#5a4028'); cx.fillRect(bx - 15, by - 31, 1, 25); cx.fillRect(bx + 11, by - 31, 1, 25);
+    for (let x = bx - 17; x <= bx + 13; x++) { cx.fillStyle = luz(Math.floor((x - bx + 17) / 3) % 2 ? '#e8dcc0' : '#2f7a8a'); cx.fillRect(x, by - 33, 1, 3); }
+    cx.fillStyle = luz('#1a1018'); cx.fillRect(bx - 17, by - 34, 31, 1);
+    if (up.toldo > 1) { cx.fillStyle = `rgba(255,170,70,${(0.08 + 0.03 * Math.sin(t * 6)).toFixed(3)})`; cx.fillRect(bx - 14, by - 30, 25, 24); }
+  }
   // caixa de pesca e lanterna
   cx.fillStyle = luz('#3a7a5a'); cx.fillRect(bx - 18, by - 10, 7, 4); cx.fillStyle = luz('#5aa07a'); cx.fillRect(bx - 18, by - 10, 7, 1); cx.fillStyle = luz('#e0c060'); cx.fillRect(bx - 15, by - 8, 1, 1);
   cx.fillStyle = luz('#4a3420'); cx.fillRect(bx + 27, by - 22, 1, 16); cx.fillRect(bx + 25, by - 22, 3, 1);

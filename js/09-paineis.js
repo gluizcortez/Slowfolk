@@ -8,7 +8,7 @@
 let painelAberto = null;
 let cestoSel = null;
 
-const TITULOS = { pesca: 'Pesca', cozinha: 'Cozinha', mina: 'Mina', forja: 'Forja', horta: 'Horta', cesto: 'Cesto', mercado: 'Mercado', ficha: 'Ficha' };
+const TITULOS = { pesca: 'Pesca', cozinha: 'Cozinha', mina: 'Mina', forja: 'Forja', horta: 'Horta', cesto: 'Cesto', mercado: 'Barraca do pescador', ficha: 'Ficha' };
 
 function abrePainel(nome) {
   if (painelAberto === nome) return fechaPainel();
@@ -74,7 +74,7 @@ const PAINEIS = {
     const v = varaAtual(), isca = iscaAtual();
     let h = cabecalhoHab('pesca');
     h += `<div class="info2"><span data-item="${E.equip.vara}">${icoHtml(E.equip.vara, 'sm')} ${v.nome}</span>
-      <span>${isca ? icoHtml(isca, 'sm') + ' ' + ITENS[isca].nome + ' ×' + qtd(isca) : 'Sem isca (compre minhocas no mercado)'}</span>
+      <span>${isca ? icoHtml(isca, 'sm') + ' ' + ITENS[isca].nome + ' ×' + qtd(isca) : 'Sem isca (compre na barraca do pescador)'}</span>
       <span>Sorte ${sorteTotal()}% · Calor ${calorTotal()}</span></div>`;
     h += `<h3>Pontos de pesca</h3><div class="pontos">`;
     for (const p of PONTOS) {
@@ -150,7 +150,7 @@ const PAINEIS = {
           ${k >= 1 ? `<button type="button" class="sm" data-a="colhe" data-n="${i}">Colher</button>` : `<div class="bar agua"><i data-prog="horta${i}"></i></div><small data-falta="${i}"></small>`}</div>`;
       } else {
         const opcoes = PLANTAS.filter(p => tem('sem_' + p.id) && nv('cultivo') >= p.nivel);
-        h += `<div class="canteiro vazio"><b>Canteiro vazio</b>${opcoes.length ? `<div class="sementes">${opcoes.map(p => `<button type="button" class="ghost sm" data-a="planta" data-n="${i}" data-x="${p.id}" data-item="sem_${p.id}">${icoHtml('sem_' + p.id, 'sm')}${qtd('sem_' + p.id)}</button>`).join('')}</div>` : `<small>Sem sementes. Compre no mercado.</small>`}</div>`;
+        h += `<div class="canteiro vazio"><b>Canteiro vazio</b>${opcoes.length ? `<div class="sementes">${opcoes.map(p => `<button type="button" class="ghost sm" data-a="planta" data-n="${i}" data-x="${p.id}" data-item="sem_${p.id}">${icoHtml('sem_' + p.id, 'sm')}${qtd('sem_' + p.id)}</button>`).join('')}</div>` : `<small>Sem sementes. Compre na barraca do pescador.</small>`}</div>`;
       }
     });
     const prox = E.horta.length < CANTEIRO_PRECO.length ? CANTEIRO_PRECO[E.horta.length] : null;
@@ -181,19 +181,72 @@ const PAINEIS = {
     return h;
   },
 
+  // a barraca do pescador, no píer: vende peixes por ouro e compra varas, iscas, sementes e melhorias do barco
   mercado() {
-    let h = `<p class="nota">A dona Lurdes compra qualquer coisa e vende o básico para a horta e a pesca.</p><h3>Comprar</h3><div class="loja">`;
-    const oferta = [['minhoca', 10], ...PLANTAS.map(p => ['sem_' + p.id, 1])];
-    for (const [id, n] of oferta) {
-      const it = ITENS[id], preco = it.compra * n, p = id.startsWith('sem_') ? plantaDe(id.slice(4)) : null, trava = p && nv('cultivo') < p.nivel;
-      h += `<div class="oferta ${trava ? 'travada' : ''}" data-item="${id}">${icoHtml(id)}<b>${it.nome}${n > 1 ? ' ×' + n : ''}</b><small>${trava ? cadeado(p.nivel, 'cultivo') : 'você tem ' + qtd(id)}</small>
-        ${trava ? '' : `<button type="button" class="sm" data-a="compra" data-x="${id}" data-n="${n}" ${E.moedas >= preco ? '' : 'disabled'}>${fmt(preco)} ${icoHtml('ui:moeda', 'sm')}</button>`}</div>`;
+    const ouro = n => `${fmt(n)} ${icoHtml('ui:moeda', 'sm')}`;
+    const botao = (a, x, n, preco, txt) => `<button type="button" class="sm" data-a="${a}" data-x="${x}" ${n != null ? `data-n="${n}"` : ''} ${E.moedas >= preco ? '' : 'disabled'}>${txt || ouro(preco)}</button>`;
+    let h = `<p class="nota">A dona Lurdes compra seus peixes e vende o que um pescador precisa. Você tem <b class="ouro">${ouro(E.moedas)}</b></p>`;
+
+    // vender peixes
+    const peixes = Object.keys(E.inv).filter(id => ITENS[id] && ITENS[id].tipo === 'peixe').sort((a, b) => ITENS[b].valor - ITENS[a].valor);
+    const totalPeixes = peixes.reduce((s, id) => s + ITENS[id].valor * qtd(id), 0);
+    h += `<h3>Vender peixes</h3>`;
+    if (!peixes.length) h += `<p class="nota">Nenhum peixe no cesto. Volte quando pescar alguma coisa.</p>`;
+    else {
+      h += `<div class="venda destaque"><b>Todos os peixes</b><small>${peixes.reduce((s, id) => s + qtd(id), 0)} peixes</small><button type="button" class="sm" data-a="vendeTipo" data-x="peixe">Vender por ${ouro(totalPeixes)}</button></div><div class="vendas">`;
+      for (const id of peixes) {
+        const it = ITENS[id];
+        h += `<div class="venda peixe" data-item="${id}">${icoHtml(id, 'sm')}<b style="color:${RARIDADES[it.rar].cor}">${it.nome} ×${qtd(id)}</b><small>${it.valor} cada</small>
+          <span class="lbotoes"><button type="button" class="ghost sm" data-a="vende" data-x="${id}" data-n="1">Vender 1</button><button type="button" class="ghost sm" data-a="vende" data-x="${id}" data-n="${qtd(id)}">Todos (${fmt(it.valor * qtd(id))})</button></span></div>`;
+      }
+      h += `</div>`;
     }
-    h += `</div><h3>Vender por tipo</h3><div class="vendas">`;
-    for (const [tipo, nome] of [['peixe', 'Todos os peixes'], ['cultivo', 'Toda a colheita'], ['prato', 'Todos os pratos'], ['minerio', 'Todos os minérios'], ['gema', 'Todas as gemas'], ['barra', 'Todas as barras']]) {
+
+    // varas
+    h += `<h3>Varas</h3><div class="loja">`;
+    for (const v of VARAS_LOJA) {
+      const trava = nv('pesca') < v.nivel, usando = E.equip.vara === v.id, noCesto = tem(v.id);
+      let bt;
+      if (usando) bt = `<button type="button" class="ghost sm" disabled>Equipada</button>`;
+      else if (noCesto) bt = `<button type="button" class="sm" data-a="equipa" data-x="${v.id}">Equipar</button>`;
+      else if (!trava) bt = botao('compraVara', v.id, null, v.preco);
+      h += `<div class="oferta ${trava ? 'travada' : ''}" data-item="${v.id}">${icoHtml(v.id)}<b>${v.nome}</b>
+        <small>${trava ? cadeado(v.nivel, 'pesca') : `fisgada ${Math.round((1 / v.vel - 1) * 100)}% · força ${v.forca.toFixed(2).replace('.', ',')} · sorte ${v.sorte}%`}</small>${bt || ''}</div>`;
+    }
+    h += `</div>`;
+
+    // iscas
+    h += `<h3>Iscas</h3><div class="loja">`;
+    for (const [id, n, nivelMin] of ISCAS_LOJA) {
+      const it = ITENS[id], preco = it.compra * n, trava = nv('pesca') < nivelMin;
+      h += `<div class="oferta ${trava ? 'travada' : ''}" data-item="${id}">${icoHtml(id)}<b>${it.nome} ×${n}</b>
+        <small>${trava ? cadeado(nivelMin, 'pesca') : `+${it.sorte}% de sorte · você tem ${qtd(id)}`}</small>${trava ? '' : botao('compra', id, n, preco)}</div>`;
+    }
+    h += `</div>`;
+
+    // melhorias do barco
+    h += `<h3>Melhorias do barco</h3><div class="loja">`;
+    for (const u of UPGRADES_BARCO) {
+      const n = E.barcoUp[u.id] || 0, max = u.precos.length, preco = u.precos[n];
+      h += `<div class="oferta"><i class="ico" style="background-image:url(${icone(u.ico)})"></i><b>${u.nome} <span class="nv">${n}/${max}</span></b>
+        <small>${n ? 'agora: ' + u.txt(n * u.por) : 'ainda não tem'}${n < max ? `<br>próximo: ${u.txt((n + 1) * u.por)}` : ''}</small>
+        ${n < max ? botao('upBarco', u.id, null, preco) : `<button type="button" class="ghost sm" disabled>No máximo</button>`}</div>`;
+    }
+    h += `</div>`;
+
+    // sementes para a horta
+    h += `<h3>Sementes</h3><div class="loja">`;
+    for (const p of PLANTAS) {
+      const id = 'sem_' + p.id, it = ITENS[id], trava = nv('cultivo') < p.nivel;
+      h += `<div class="oferta ${trava ? 'travada' : ''}" data-item="${id}">${icoHtml(id)}<b>${it.nome}</b><small>${trava ? cadeado(p.nivel, 'cultivo') : 'você tem ' + qtd(id)}</small>${trava ? '' : botao('compra', id, 1, it.compra)}</div>`;
+    }
+
+    // vender o resto
+    h += `</div><h3>Vender outras coisas</h3><div class="vendas">`;
+    for (const [tipo, nome] of [['cultivo', 'Toda a colheita'], ['prato', 'Todos os pratos'], ['minerio', 'Todos os minérios'], ['gema', 'Todas as gemas'], ['barra', 'Todas as barras']]) {
       const ids = Object.keys(E.inv).filter(id => ITENS[id] && ITENS[id].tipo === tipo);
       const total = ids.reduce((s, id) => s + ITENS[id].valor * qtd(id), 0);
-      h += `<div class="venda"><b>${nome}</b><small>${ids.reduce((s, id) => s + qtd(id), 0)} itens</small><button type="button" class="ghost sm" data-a="vendeTipo" data-x="${tipo}" ${total ? '' : 'disabled'}>Vender por ${fmt(total)}</button></div>`;
+      h += `<div class="venda"><b>${nome}</b><small>${ids.reduce((s, id) => s + qtd(id), 0)} itens</small><button type="button" class="ghost sm" data-a="vendeTipo" data-x="${tipo}" ${total ? '' : 'disabled'}>Vender por ${ouro(total)}</button></div>`;
     }
     return h + `</div><p class="nota">Para vender um item só, abra o Cesto.</p>`;
   },
@@ -209,7 +262,7 @@ const PAINEIS = {
     const v = varaAtual();
     h += `</div><div class="numeros"><div><small>Calor</small><b>${calorTotal()}</b></div><div><small>Sorte</small><b>${sorteTotal()}%</b></div>
       <div><small>Fisgada</small><b>${Math.round((1 / v.vel - 1) * 100)}%</b></div><div><small>Força</small><b>${v.forca.toFixed(2).replace('.', ',')}</b></div>
-      <div><small>Peixes pegos</small><b>${fmt(E.total.peixes)}</b></div><div><small>Moedas ganhas</small><b>${fmt(E.total.moedas)}</b></div></div></div>
+      <div><small>Peixes pegos</small><b>${fmt(E.total.peixes)}</b></div><div><small>Ouro ganho</small><b>${fmt(E.total.moedas)}</b></div></div></div>
       <p class="nota">Para vestir uma peça, abra o Cesto, escolha a peça e clique em Equipar.</p>`;
     return h;
   }
@@ -225,7 +278,7 @@ function descItem(it) {
   if (it.pic) p.push(`<span class="bonus">minera ${Math.round((1 / it.pic - 1) * 100)}% mais rápido</span>`);
   if (it.tipo === 'isca') p.push(`<span class="bonus">fisgada mais rápida, +${it.sorte}% de sorte</span>`);
   if (it.ef) p.push(`<span class="bonus">${EFEITOS[it.ef[0]].fmt(it.ef[1])} por ${fmtTempo(it.ef[2])}</span>`);
-  if (it.valor) p.push(`vale ${it.valor} moedas`);
+  if (it.valor) p.push(`vale ${it.valor} de ouro`);
   return p.join('<br>');
 }
 
@@ -252,6 +305,12 @@ $('pCorpo').addEventListener('click', e => {
     case 'vende': vende(x, n); if (!tem(x)) cestoSel = null; break;
     case 'vendeTipo': for (const id of Object.keys(E.inv)) if (ITENS[id] && ITENS[id].tipo === x) vende(id, qtd(id)); break;
     case 'compra': if (gasta(ITENS[x].compra * n)) { da(x, n); sfx.moeda(); } break;
+    case 'compraVara': if (gasta(ITENS[x].compra)) { da(x); equipa(x); aviso(`Você comprou a ${ITENS[x].nome.toLowerCase()}!`); } break;
+    case 'upBarco': {
+      const u = UPGRADES_BARCO.find(q => q.id === x), nv = E.barcoUp[x] || 0;
+      if (nv < u.precos.length && gasta(u.precos[nv])) { E.barcoUp[x] = nv + 1; sfx.martelo(); aviso(`${u.nome} melhorado: ${u.txt((nv + 1) * u.por)}`); }
+      break;
+    }
   }
   marcaMudou(); salvar();
 });

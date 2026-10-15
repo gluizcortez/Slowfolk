@@ -3,8 +3,18 @@
 /* ================= versão e novidades =================
    MAIOR.MENOR.CORREÇÃO, em 0.x enquanto o jogo está em desenvolvimento. MENOR sobe a cada leva de conteúdo novo,
    CORREÇÃO quando só conserta ou ajusta. Quem publicar sobe VERSAO e põe a entrada nova no topo de NOVIDADES. */
-const VERSAO = '0.3.0';
+const VERSAO = '0.4.0';
 const NOVIDADES = [
+  {
+    v: '0.4.0', data: '15/10/2026', titulo: 'A barraca abre as portas',
+    itens: [
+      'Na barraca do pescador você vende seus peixes por ouro: um por um, todos de um tipo ou tudo de uma vez.',
+      'Com o ouro dá para comprar quatro varas novas (carvalho, fibra, carbono e a vara do mestre), que já vêm equipadas.',
+      'Iscas novas: grilo e isca brilhante, além de minhoca e isca de milho em pacotes. A melhor isca que você tiver é usada primeiro.',
+      'Melhorias do barco: motor mais rápido, porta-vara (fisgada mais rápida), sonar (mais sorte) e toldo aquecido (mais calor para a Baía Gelada). Cada uma aparece no barco.',
+      'O dinheiro do jogo agora se chama ouro.'
+    ]
+  },
   {
     v: '0.3.0', data: '15/10/2026', titulo: 'Rumo ao píer',
     itens: [

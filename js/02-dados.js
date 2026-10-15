@@ -107,10 +107,31 @@ for (const p of PLANTAS) {
   item('sem_' + p.id, { nome: 'Sementes de ' + p.nome.toLowerCase(), tipo: 'semente', valor: Math.ceil(p.custo / 2), compra: p.custo, ico: { f: 'semente', c: [p.cor] } });
 }
 
-/* iscas: uma por lançamento, a de cima da lista é usada primeiro */
-const ISCAS = ['isca_milho', 'minhoca'];
+/* iscas: uma por lançamento, a de cima da lista (a melhor) é usada primeiro */
+const ISCAS = ['isca_brilho', 'grilo', 'isca_milho', 'minhoca'];
 item('minhoca', { nome: 'Minhoca', tipo: 'isca', valor: 1, compra: 3, vel: 0.85, sorte: 2, ico: { f: 'minhoca', c: ['#d87878'] } });
-item('isca_milho', { nome: 'Isca de milho', tipo: 'isca', valor: 3, vel: 0.8, sorte: 5, ico: { f: 'isca', c: ['#f8d040'] } });
+item('isca_milho', { nome: 'Isca de milho', tipo: 'isca', valor: 3, compra: 5, vel: 0.8, sorte: 5, ico: { f: 'isca', c: ['#f8d040'] } });
+item('grilo', { nome: 'Grilo', tipo: 'isca', valor: 3, compra: 8, vel: 0.76, sorte: 8, ico: { f: 'isca', c: ['#7a9a3a'] } });
+item('isca_brilho', { nome: 'Isca brilhante', tipo: 'isca', valor: 8, compra: 20, vel: 0.68, sorte: 12, ico: { f: 'isca', c: ['#7ae0ff'] } });
+
+/* a barraca do pescador (no píer): o que a dona Lurdes vende por ouro */
+// iscas: [id, quantos vêm no pacote, nível de pesca para comprar]
+const ISCAS_LOJA = [['minhoca', 10, 1], ['isca_milho', 5, 3], ['grilo', 5, 8], ['isca_brilho', 5, 15]];
+// varas compradas (as de metal saem da forja)
+const VARAS_LOJA = [
+  { id: 'vara_carvalho', nome: 'Vara de carvalho', nivel: 1, preco: 80, vel: 0.92, forca: 1.15, sorte: 1, cor: '#a8743c' },
+  { id: 'vara_fibra', nome: 'Vara de fibra', nivel: 5, preco: 350, vel: 0.84, forca: 1.35, sorte: 3, cor: '#e8e4d0' },
+  { id: 'vara_carbono', nome: 'Vara de carbono', nivel: 12, preco: 1400, vel: 0.72, forca: 1.7, sorte: 6, cor: '#4a5058' },
+  { id: 'vara_mestre', nome: 'Vara do mestre', nivel: 20, preco: 5000, vel: 0.6, forca: 2.1, sorte: 10, cor: '#d04a3a' }
+];
+for (const v of VARAS_LOJA) item(v.id, { nome: v.nome, tipo: 'equip', slot: 'vara', valor: Math.round(v.preco * 0.4), compra: v.preco, vel: v.vel, forca: v.forca, sorte: v.sorte, ico: { f: 'vara', c: [v.cor] } });
+// melhorias do barco: cada nível soma `por` ao efeito; `precos` tem um preço por nível
+const UPGRADES_BARCO = [
+  { id: 'motor', nome: 'Motor', ico: 'ui:motor', por: 30, txt: n => `barco ${n}% mais rápido`, precos: [150, 600, 2000] },
+  { id: 'portavara', nome: 'Porta-vara', ico: 'ui:portavara', por: 7, txt: n => `fisgada ${n}% mais rápida`, precos: [250, 900, 3000] },
+  { id: 'sonar', nome: 'Sonar de peixe', ico: 'ui:sonar', por: 3, txt: n => `+${n}% de sorte`, precos: [400, 1500, 4500] },
+  { id: 'toldo', nome: 'Toldo aquecido', ico: 'ui:toldo', por: 2, txt: n => `+${n} de calor`, precos: [300, 1200] }
+];
 
 /* cozinha: ingredientes -> prato; pratos vendem bem ou, comidos, dão um efeito por um tempo */
 const EFEITOS = {

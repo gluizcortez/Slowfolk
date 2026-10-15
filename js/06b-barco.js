@@ -41,7 +41,7 @@ function atualizaMundo(dt) {
     let d = quer;
     if (d && PESCA.estado === 'esperando') recolhe('Linha recolhida.');
     if (PESCA.estado !== 'parado') d = 0;   // lançando, com mordida ou puxando, o barco fica parado
-    velBarco = lerp(velBarco, d * VEL_BARCO, Math.min(1, dt * (d ? 1.8 : 2.4)));
+    velBarco = lerp(velBarco, d * VEL_BARCO * (1 + doBarco('motor') / 100), Math.min(1, dt * (d ? 1.8 : 2.4)));
     if (!d && Math.abs(velBarco) < 0.5) velBarco = 0;
     const antes = E.barco;
     E.barco = clamp(E.barco + velBarco * dt, barcoMin(), barcoMax());
@@ -231,7 +231,7 @@ function desenhaTeclaE(t) {
   if (!_textoE) return;
   let x, y;
   if (PE.ativo) { x = Math.round(PE.x); y = WL - 5 - 32; }
-  else { x = BARCO.x - 4; y = BARCO.y - 36; }
+  else { x = BARCO.x - 4; y = BARCO.y - (E.barcoUp && E.barcoUp.toldo ? 46 : 36); }
   y += Math.round(Math.sin(t * 5) * 1);
   cx.fillStyle = '#1a1018'; cx.fillRect(x - 4, y - 1, 9, 10);
   cx.fillStyle = '#efe2c4'; cx.fillRect(x - 3, y, 7, 7);

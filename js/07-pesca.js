@@ -15,6 +15,7 @@ const pontoAtual = () => PONTOS.find(p => p.id === E.ponto);
 function tempoMordida() {
   const isca = iscaAtual();
   let s = rand(5, 11) * varaAtual().vel * (isca ? ITENS[isca].vel : 1) * (1 - efeito('vel') / 100);
+  s *= 1 - doBarco('portavara') / 100;
   if (E.auto) s *= 1.2;
   return Math.max(1.5, s);
 }
@@ -75,7 +76,7 @@ function pegou() {
 
 function mostraPegou(it, f, novo) {
   const el = $('pegou'), R = RARIDADES[it.rar];
-  el.innerHTML = `${icoHtml(it.id)}<b style="color:${R.cor}">${it.nome}</b><small>${R.nome} · ${fmtPeso(f.peso)} · ${it.valor} moedas</small>${novo ? '<small class="novo">Novo no caderno!</small>' : ''}`;
+  el.innerHTML = `${icoHtml(it.id)}<b style="color:${R.cor}">${it.nome}</b><small>${R.nome} · ${fmtPeso(f.peso)} · ${it.valor} de ouro</small>${novo ? '<small class="novo">Novo no caderno!</small>' : ''}`;
   el.hidden = false; el.classList.remove('sai'); void el.offsetWidth;
   clearTimeout(mostraPegou.t1); clearTimeout(mostraPegou.t2);
   mostraPegou.t1 = setTimeout(() => el.classList.add('sai'), 1900);
