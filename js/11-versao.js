@@ -3,8 +3,19 @@
 /* ================= versão e novidades =================
    MAIOR.MENOR.CORREÇÃO, em 0.x enquanto o jogo está em desenvolvimento. MENOR sobe a cada leva de conteúdo novo,
    CORREÇÃO quando só conserta ou ajusta. Quem publicar sobe VERSAO e põe a entrada nova no topo de NOVIDADES. */
-const VERSAO = '0.4.0';
+const VERSAO = '0.5.0';
 const NOVIDADES = [
+  {
+    v: '0.5.0', data: '15/10/2026', titulo: 'A fazenda e a fogueira',
+    itens: [
+      'Descendo do barco e andando para a esquerda, depois da barraca, agora tem terra firme: a fazenda e, mais adiante, uma fogueira com panela, tábua e faca.',
+      'Na fazenda, pare num canteiro e aperte E para plantar, regar ou colher. Regado, o canteiro cresce 2,5 vezes mais rápido até secar. Na placa depois do último canteiro dá para comprar mais.',
+      'Na fogueira você cozinha: ponha até 5 ingredientes na panela, peixes e o que colheu. As combinações certas viram receitas, com efeitos diferentes, e entram no caderno; o resto vira um prato simples.',
+      'Pratos novos: purê com cenoura e caldo de peixe. Efeito novo, Boa lábia: mais ouro nas vendas da barraca.',
+      'A cozinha só cozinha com você na fogueira. Não existe mais a barra com todos os ofícios: cada ofício se usa no lugar dele. O cesto (I), a ficha (F) e o caderno de pesca (P) abrem em qualquer lugar.',
+      'A mina e a forja ficam guardadas até ganharem um lugar no mundo.'
+    ]
+  },
   {
     v: '0.4.0', data: '15/10/2026', titulo: 'A barraca abre as portas',
     itens: [

@@ -1,30 +1,40 @@
 'use strict';
 
-/* ================= painéis: as janelas da doca (pesca, cozinha, mina, forja, horta, cesto, mercado, ficha) =================
+/* ================= painéis: as janelas que abrem por cima do mundo =================
+   Cada ofício só abre no lugar dele: a barraca no balcão do píer, a fogueira (cozinha) e a escolha de sementes
+   (plantar) na fazenda, sempre com o E. O cesto, a ficha e o caderno de pesca abrem em qualquer lugar (I, F e P).
+   Mina e forja ainda não têm lugar no mundo: os painéis delas ficam aqui guardados, sem botão que os abra.
    Cada painel é uma função que devolve HTML. Os botões levam data-a="ação" e os parâmetros em data-x / data-n, e um único
    ouvinte no corpo do painel resolve tudo. Quando o estado muda (marcaMudou), o painel aberto é redesenhado; as barras de
    progresso andam todo quadro sem redesenhar (atualizaBarras). */
 
 let painelAberto = null;
 let cestoSel = null;
+let canteiroSel = 0;   // o canteiro em que o pescador apertou E para plantar
 
-const TITULOS = { pesca: 'Pesca', cozinha: 'Cozinha', mina: 'Mina', forja: 'Forja', horta: 'Horta', cesto: 'Cesto', mercado: 'Barraca do pescador', ficha: 'Ficha' };
+const TITULOS = { pesca: 'Pesca', fogueira: 'Fogueira', plantar: 'Plantar', mina: 'Mina', forja: 'Forja', cesto: 'Cesto', mercado: 'Barraca do pescador', ficha: 'Ficha' };
+// onde cada painel de ofício pode abrir
+const ONDE = {
+  mercado: [() => naBarraca(), 'A loja fica na barraca do pescador, no píer à esquerda. Encoste o barco e aperte E.'],
+  fogueira: [() => naFogueira(), 'Para cozinhar, vá até a fogueira, depois da fazenda, e aperte E.'],
+  plantar: [() => canteiroPerto() >= 0, 'Para plantar, pare num canteiro da fazenda e aperte E.'],
+  mina: [() => false, 'A mina ainda não tem lugar no mundo.'], forja: [() => false, 'A forja ainda não tem lugar no mundo.']
+};
 
 function abrePainel(nome) {
   if (painelAberto === nome) return fechaPainel();
-  // a loja só abre no balcão da barraca do pescador, no píer
-  if (nome === 'mercado' && !naBarraca()) { aviso('A loja fica na barraca do pescador, no píer à esquerda. Encoste o barco e aperte E.'); return; }
+  if (ONDE[nome] && !ONDE[nome][0]()) { aviso(ONDE[nome][1]); return; }
   painelAberto = nome;
   $('pTitulo').textContent = TITULOS[nome];
   $('painel').hidden = false; document.body.classList.add('com-painel');
   $('pCorpo').scrollTop = 0;
-  document.querySelectorAll('#doca button').forEach(b => b.classList.toggle('on', b.dataset.p === nome));
+  document.querySelectorAll('#hud [data-p]').forEach(b => b.classList.toggle('on', b.dataset.p === nome));
   redesenhaPainel();
   try { sfx.select(); } catch (e) { }
 }
 function fechaPainel() {
   painelAberto = null; $('painel').hidden = true; document.body.classList.remove('com-painel'); $('dica').hidden = true;
-  document.querySelectorAll('#doca button').forEach(b => b.classList.remove('on'));
+  document.querySelectorAll('#hud [data-p]').forEach(b => b.classList.remove('on'));
 }
 function redesenhaPainel() {
   if (!painelAberto) return;
@@ -99,17 +109,84 @@ const PAINEIS = {
     return h;
   },
 
-  cozinha() {
-    let h = cabecalhoHab('culinaria') + trabalhoAtual('cozinha');
+  // a fogueira: a panela (até PANELA_MAX ingredientes), o que sai dela, a despensa e o caderno de receitas
+  fogueira() {
+    let h = cabecalhoHab('culinaria');
+    const S = E.cozinha, cozinhando = !!S.rec;
+    if (cozinhando) {
+      const pr = pratoDaPanela(S.ing);
+      h += `<div class="trabalho">${icoHtml(pr.faz)}<div class="tinfo"><b>${pr.nome}${pr.n > 1 ? ' ×' + pr.n : ''}</b><small>${S.falta > 1 ? 'faltam ' + S.falta + ' · ' : ''}${fmtTempo(pr.tempo)} cada</small>
+        <div class="bar prog"><i data-prog="cozinha"></i></div></div><button type="button" class="ghost sm" data-a="paraCozinha">Parar</button></div>`;
+    } else {
+      const ing = contaPanela(), pr = pratoDaPanela(ing);
+      h += `<h3>Panela</h3><div class="panela">`;
+      for (let i = 0; i < PANELA_MAX; i++) {
+        const id = E.panela[i];
+        h += id ? `<button type="button" class="slot" data-a="tiraPanela" data-n="${i}" data-item="${id}" aria-label="Tirar ${ITENS[id].nome}">${icoHtml(id)}</button>` : `<span class="slot vazio"></span>`;
+      }
+      h += `</div>`;
+      if (pr) {
+        const sabe = !pr.rec || E.receitas[pr.id], trava = pr.nivel > nv('culinaria'), mx = maxFaz(ing), it = ITENS[pr.faz];
+        const desc = !sabe ? 'Uma combinação que você nunca fez. Cozinhe para descobrir!' : it.ef ? `${EFEITOS[it.ef[0]].fmt(it.ef[1])} por ${fmtTempo(it.ef[2])}` : `vira ${pr.n} ${it.nome.toLowerCase()}`;
+        h += `<div class="resultado">${sabe ? icoHtml(pr.faz) : '<span class="misterio">?</span>'}<div><b>${sabe ? pr.nome + (pr.n > 1 ? ' ×' + pr.n : '') : 'Será uma receita?'}</b>
+          <small class="${sabe && it.ef ? 'bonus' : ''}">${trava ? cadeado(pr.nivel, 'culinaria') : desc}</small><small>${fmtTempo(pr.tempo)} · ${pr.xp} xp</small></div>
+          <div class="lbotoes">${trava ? '' : `<button type="button" class="sm" data-a="cozinha" data-n="1" ${mx < 1 ? 'disabled' : ''}>Cozinhar</button>
+          ${mx > 1 ? `<button type="button" class="ghost sm" data-a="cozinha" data-n="${mx}">Fazer ${mx}</button>` : ''}`}
+          <button type="button" class="ghost sm" data-a="esvazia">Esvaziar</button></div></div>`;
+      } else h += `<p class="nota">Ponha na panela peixes e o que você colheu na fazenda (clique abaixo). Combinações certas viram receitas com efeitos melhores.</p>`;
+      // ingredientes do cesto
+      const ings = Object.keys(E.inv).filter(naPanelaPode).sort((a, b) => ITENS[a].tipo.localeCompare(ITENS[b].tipo) || ITENS[a].valor - ITENS[b].valor);
+      h += `<h3>Ingredientes no cesto</h3>`;
+      if (!ings.length) h += `<p class="nota">Nada para cozinhar. Pesque alguns peixes e colha alguma coisa na fazenda.</p>`;
+      else {
+        h += `<div class="slots">`;
+        const usados = contaPanela();
+        for (const id of ings) {
+          const sobra = qtd(id) - (usados[id] || 0);
+          h += `<button type="button" class="slot" data-a="poePanela" data-x="${id}" data-item="${id}" ${sobra < 1 || E.panela.length >= PANELA_MAX ? 'disabled' : ''} ${ITENS[id].rar ? `style="--rc:${RARIDADES[ITENS[id].rar].cor}"` : ''}>${icoHtml(id)}<span>${fmt(sobra)}</span></button>`;
+        }
+        h += `</div>`;
+      }
+    }
+    // pratos prontos
     const pratos = Object.keys(E.inv).filter(id => ITENS[id] && ITENS[id].tipo === 'prato');
     if (pratos.length) {
-      h += `<h3>Na despensa</h3><div class="despensa">`;
+      h += `<h3>Pratos no cesto</h3><div class="despensa">`;
       for (const id of pratos) { const it = ITENS[id]; h += `<div class="prato" data-item="${id}">${icoHtml(id)}<div><b>${it.nome} ×${qtd(id)}</b><small class="bonus">${EFEITOS[it.ef[0]].fmt(it.ef[1])} · ${fmtTempo(it.ef[2])}</small></div><button type="button" class="sm" data-a="come" data-x="${id}">Comer</button></div>`; }
       h += `</div>`;
     }
-    h += `<h3>Receitas</h3>`;
-    for (const r of RECEITAS) h += linhaReceita('cozinha', receitaCozinha(r.id), 'culinaria');
+    // o caderno de receitas
+    const sabidas = RECEITAS.filter(r => E.receitas[r.id]).length;
+    h += `<h3>Caderno de receitas · ${sabidas}/${RECEITAS.length}</h3>`;
+    for (const r of RECEITAS) {
+      const sabe = E.receitas[r.id], trava = nv('culinaria') < r.nivel, faz = r.faz ? 'isca_milho' : r.id, it = ITENS[faz];
+      if (sabe) {
+        h += `<div class="linha"><span data-item="${faz}">${icoHtml(faz)}</span><div class="linfo"><b>${r.nome}${r.faz ? ' ×' + r.faz : ''}</b>
+          <small class="bonus">${it.ef ? EFEITOS[it.ef[0]].fmt(it.ef[1]) + ' por ' + fmtTempo(it.ef[2]) : 'isca para pescar'}</small><div class="chips">${chipsIng(r.ing)}</div></div>
+          <div class="lbotoes"><button type="button" class="ghost sm" data-a="receita" data-x="${r.id}" ${cozinhando || !temTodos(r.ing) ? 'disabled' : ''}>Pôr na panela</button></div></div>`;
+      } else {
+        h += `<div class="linha ${trava ? 'travada' : ''}"><span class="misterio">?</span><div class="linfo"><b>???</b>
+          <small>${trava ? cadeado(r.nivel, 'culinaria') : 'Dica: ' + dicaReceita(r)}</small></div><div></div></div>`;
+      }
+    }
     return h;
+  },
+
+  // escolher a semente do canteiro em que o pescador parou
+  plantar() {
+    let h = cabecalhoHab('cultivo');
+    const opcoes = PLANTAS.filter(p => tem('sem_' + p.id) && nv('cultivo') >= p.nivel);
+    h += `<p class="nota">Canteiro ${canteiroSel + 1}. Depois de plantar, aperte E de novo no canteiro para <b>regar</b>: molhado, ele cresce ${String(REGA.mult).replace('.', ',')} vezes mais rápido até secar. As plantas crescem até com o jogo fechado.</p>`;
+    if (!opcoes.length) h += `<p class="nota">Você não tem sementes. A dona Lurdes vende na barraca do pescador.</p>`;
+    else {
+      h += `<h3>Suas sementes</h3><div class="loja">`;
+      for (const p of opcoes) h += `<div class="oferta" data-item="sem_${p.id}">${icoHtml('sem_' + p.id)}<b>${p.nome} <span class="nv">×${qtd('sem_' + p.id)}</span></b>
+        <small>${fmtTempo(p.tempo)} sem regar · colhe ${p.colhe.join('–')}</small><button type="button" class="sm" data-a="planta" data-x="${p.id}">Plantar</button></div>`;
+      h += `</div>`;
+    }
+    h += `<h3>O que dá para plantar</h3><div class="tabela">`;
+    for (const p of PLANTAS) h += `<div class="${nv('cultivo') < p.nivel ? 'travada' : ''}">${icoHtml(p.id, 'sm')}<b>${p.nome}</b><small>${nv('cultivo') < p.nivel ? cadeado(p.nivel, 'cultivo') : fmtTempo(p.tempo) + ' · colhe ' + p.colhe.join('–') + ' · ' + p.xp + ' xp'}</small></div>`;
+    return h + `</div>`;
   },
 
   mina() {
@@ -137,27 +214,6 @@ const PAINEIS = {
       for (const p of PECAS) h += linhaReceita('forja', receitaForja(p.id + '_' + m.id), 'forja');
     }
     return h;
-  },
-
-  horta() {
-    let h = cabecalhoHab('cultivo');
-    h += `<div class="info2"><span>As plantas crescem até com o jogo fechado.</span><span>Colher às vezes dá minhocas.</span>${hortaPronta() > 1 ? `<button type="button" class="sm" data-a="colheTudo">Colher tudo</button>` : ''}</div>`;
-    h += `<div class="canteiros">`;
-    E.horta.forEach((c, i) => {
-      if (c.planta) {
-        const p = plantaDe(c.planta), k = prontoCanteiro(c);
-        h += `<div class="canteiro ${k >= 1 ? 'pronto' : ''}">${icoHtml(p.id)}<b>${p.nome}</b>
-          ${k >= 1 ? `<button type="button" class="sm" data-a="colhe" data-n="${i}">Colher</button>` : `<div class="bar agua"><i data-prog="horta${i}"></i></div><small data-falta="${i}"></small>`}</div>`;
-      } else {
-        const opcoes = PLANTAS.filter(p => tem('sem_' + p.id) && nv('cultivo') >= p.nivel);
-        h += `<div class="canteiro vazio"><b>Canteiro vazio</b>${opcoes.length ? `<div class="sementes">${opcoes.map(p => `<button type="button" class="ghost sm" data-a="planta" data-n="${i}" data-x="${p.id}" data-item="sem_${p.id}">${icoHtml('sem_' + p.id, 'sm')}${qtd('sem_' + p.id)}</button>`).join('')}</div>` : `<small>Sem sementes. Compre na barraca do pescador.</small>`}</div>`;
-      }
-    });
-    const prox = E.horta.length < CANTEIRO_PRECO.length ? CANTEIRO_PRECO[E.horta.length] : null;
-    if (prox) h += `<div class="canteiro novo"><b>Novo canteiro</b><button type="button" class="sm" data-a="canteiro" ${E.moedas >= prox ? '' : 'disabled'}>${fmt(prox)} ${icoHtml('ui:moeda', 'sm')}</button></div>`;
-    h += `</div><h3>O que dá para plantar</h3><div class="tabela">`;
-    for (const p of PLANTAS) h += `<div class="${nv('cultivo') < p.nivel ? 'travada' : ''}">${icoHtml(p.id, 'sm')}<b>${p.nome}</b><small>${nv('cultivo') < p.nivel ? cadeado(p.nivel, 'cultivo') : fmtTempo(p.tempo) + ' · colhe ' + p.colhe.join('–') + ' · ' + p.xp + ' xp'}</small></div>`;
-    return h + `</div>`;
   },
 
   cesto() {
@@ -234,7 +290,7 @@ const PAINEIS = {
     }
     h += `</div>`;
 
-    // sementes para a horta
+    // sementes para a fazenda
     h += `<h3>Sementes</h3><div class="loja">`;
     for (const p of PLANTAS) {
       const id = 'sem_' + p.id, it = ITENS[id], trava = nv('cultivo') < p.nivel;
@@ -246,6 +302,7 @@ const PAINEIS = {
     for (const [tipo, nome] of [['cultivo', 'Toda a colheita'], ['prato', 'Todos os pratos'], ['minerio', 'Todos os minérios'], ['gema', 'Todas as gemas'], ['barra', 'Todas as barras']]) {
       const ids = Object.keys(E.inv).filter(id => ITENS[id] && ITENS[id].tipo === tipo);
       const total = ids.reduce((s, id) => s + ITENS[id].valor * qtd(id), 0);
+      if (!total && !['cultivo', 'prato'].includes(tipo)) continue;   // minérios, gemas e barras só aparecem se tiver
       h += `<div class="venda"><b>${nome}</b><small>${ids.reduce((s, id) => s + qtd(id), 0)} itens</small><button type="button" class="ghost sm" data-a="vendeTipo" data-x="${tipo}" ${total ? '' : 'disabled'}>Vender por ${ouro(total)}</button></div>`;
     }
     return h + `</div><p class="nota">Para vender um item só, abra o Cesto.</p>`;
@@ -267,6 +324,15 @@ const PAINEIS = {
     return h;
   }
 };
+
+// a dica de uma receita que o jogador ainda não fez: a colheita pelo nome, o peixe só pela raridade e pelo lugar
+function dicaReceita(r) {
+  return Object.entries(r.ing).map(([id, n]) => {
+    const it = ITENS[id];
+    if (it.tipo === 'peixe') return `${n} peixe${n > 1 ? 's' : ''} ${RARIDADES[it.rar].nome.toLowerCase()}${n > 1 ? 's' : ''} (${PONTOS.find(p => p.id === it.ponto).nome})`;
+    return `${n} ${it.nome.toLowerCase()}`;
+  }).join(' + ');
+}
 
 function descItem(it) {
   const p = [];
@@ -295,10 +361,13 @@ $('pCorpo').addEventListener('click', e => {
     case 'come': come(x); break;
     case 'viaja': viaja(x); break;
     case 'compraPonto': { const p = PONTOS.find(q => q.id === x); if (gasta(p.custo)) { E.pontos[x] = true; sfx.moeda(); viaja(x); } break; }
-    case 'planta': planta(n, x); break;
-    case 'colhe': { const r = colhe(n); if (r) aviso(`Colheu ${r.n} ${ITENS[r.id].nome.toLowerCase()}${r.minhocas ? ` e ${r.minhocas} minhoca${r.minhocas > 1 ? 's' : ''}` : ''}`); break; }
-    case 'colheTudo': E.horta.forEach((c, i) => colhe(i)); break;
-    case 'canteiro': { const pr = CANTEIRO_PRECO[E.horta.length]; if (gasta(pr)) { E.horta.push({ planta: null, desde: 0 }); sfx.moeda(); } break; }
+    case 'planta': planta(canteiroSel, x); fechaPainel(); aviso(`Plantou ${ITENS[x].nome.toLowerCase()}. Aperte E para regar.`); break;
+    case 'poePanela': if (E.panela.length < PANELA_MAX && naPanelaPode(x) && qtd(x) > (contaPanela()[x] || 0)) { E.panela.push(x); sfx.clique(); } break;
+    case 'tiraPanela': E.panela.splice(n, 1); sfx.clique(); break;
+    case 'esvazia': E.panela = []; break;
+    case 'receita': { const r = RECEITAS.find(q => q.id === x); E.panela = Object.entries(r.ing).flatMap(([id, k]) => Array(k).fill(id)); sfx.clique(); break; }
+    case 'cozinha': cozinha(n); break;
+    case 'paraCozinha': paraCozinha(); break;
     case 'sel': cestoSel = cestoSel === x ? null : x; sfx.clique(); break;
     case 'equipa': equipa(x); cestoSel = null; break;
     case 'tira': desequipa(x); sfx.equipa(); break;
@@ -343,17 +412,12 @@ function atualizaBarras() {
   for (const el of c.querySelectorAll('[data-prog]')) {
     const k = el.dataset.prog; let f = 0;
     if (k === 'mina' && E.mina.veio) f = E.mina.prog / tempoVeio(VEIOS.find(v => v.id === E.mina.veio));
-    else if (k === 'cozinha' || k === 'forja') { const S = E[k]; if (S.rec) f = S.prog / ESTACOES[k].rec(S.rec).tempo; }
-    else if (k.startsWith('horta')) f = prontoCanteiro(E.horta[+k.slice(5)] || {});
+    else if (k === 'cozinha') { const S = E.cozinha; if (S.rec) f = S.prog / pratoDaPanela(S.ing).tempo; }
+    else if (k === 'forja') { const S = E.forja; if (S.rec) f = S.prog / ESTACOES.forja.rec(S.rec).tempo; }
     el.style.width = (clamp(f, 0, 1) * 100).toFixed(1) + '%';
-  }
-  for (const el of c.querySelectorAll('[data-falta]')) {
-    const cc = E.horta[+el.dataset.falta]; if (!cc || !cc.planta) continue;
-    el.textContent = fmtTempo(plantaDe(cc.planta).tempo * (1 - prontoCanteiro(cc)));
-    if (prontoCanteiro(cc) >= 1) marcaMudou();
   }
 }
 
 $('pFechar').addEventListener('click', fechaPainel);
 $('painel').addEventListener('pointerdown', e => { if (e.target === $('painel')) fechaPainel(); });
-document.querySelectorAll('#doca button').forEach(b => b.addEventListener('click', () => { initAudio(); abrePainel(b.dataset.p); }));
+document.querySelectorAll('#hud [data-p]').forEach(b => b.addEventListener('click', () => { initAudio(); abrePainel(b.dataset.p); }));

@@ -112,8 +112,9 @@ function montaTitulo() {
       if (r) mostraFora(r);
     } else {
       aviso('Bem-vindo ao Slowfolk! Clique na água para lançar a linha.');
-      setTimeout(() => aviso('A e D (ou as setas) movem o barco. A loja fica na barraca do píer: encoste e aperte E.'), 3200);
-      setTimeout(() => aviso('Dica: o Modo calmo (tecla C) pesca sozinho, até com o jogo fechado.'), 6400);
+      setTimeout(() => aviso('A e D (ou as setas) movem o barco. No píer, à esquerda, ficam a barraca, a fazenda e a fogueira.'), 3200);
+      setTimeout(() => aviso('Encoste no píer e aperte E para descer. Cada lugar tem o seu ofício: é só chegar e apertar E.'), 6400);
+      setTimeout(() => aviso('Dica: o Modo calmo (tecla C) pesca sozinho, até com o jogo fechado.'), 9600);
     }
     salvar();
   }
@@ -124,8 +125,8 @@ function mostraFora(r) {
   const peixes = lin(r.peixes), feitos = lin(r.feitos);
   PAINEIS.fora = () => `<p class="nota">Você ficou fora por <b>${fmtTempo(r.seg)}</b>${r.seg >= OFFLINE_MAX ? ' (o máximo que conta são 8 horas)' : ''}.</p>
     ${peixes ? `<h3>O Modo calmo pescou</h3><div class="chips">${peixes}</div>` : E.auto ? '' : '<p class="nota">Deixe o Modo calmo ligado para pescar enquanto você está fora.</p>'}
-    ${feitos ? `<h3>As estações fizeram</h3><div class="chips">${feitos}</div>` : ''}
-    ${r.horta ? `<h3>Horta</h3><p class="nota">${r.horta} canteiro${r.horta > 1 ? 's prontos' : ' pronto'} para colher.</p>` : ''}`;
+    ${feitos ? `<h3>Na fogueira</h3><div class="chips">${feitos}</div>` : ''}
+    ${r.horta ? `<h3>Fazenda</h3><p class="nota">${r.horta} canteiro${r.horta > 1 ? 's prontos' : ' pronto'} para colher.</p>` : ''}`;
   TITULOS.fora = 'Enquanto você estava fora';
   painelAberto = null; abrePainel('fora');
 }

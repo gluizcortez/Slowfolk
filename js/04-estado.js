@@ -1,8 +1,9 @@
 'use strict';
 
 /* ================= estado do jogo, inventário, habilidades e save =================
-   Todo o progresso fica em E (salvo no navegador em 'slowfolk-save'). As estações (mina, cozinha, forja) e a horta
-   andam sozinhas, inclusive com o jogo fechado: ao abrir, js/08-oficios.js recupera o tempo que passou (até 8 h). */
+   Todo o progresso fica em E (salvo no navegador em 'slowfolk-save'). Cada ofício só anda com o pescador no lugar
+   dele (a cozinha, na fogueira); só as plantas da fazenda crescem sozinhas, inclusive com o jogo fechado.
+   A mina e a forja ainda não têm lugar no mundo e ficam paradas (o estado delas continua no save). */
 
 const SAVE_KEY = 'slowfolk-save';
 const OFFLINE_MAX = 8 * 3600;
@@ -22,9 +23,11 @@ function novoEstado() {
     auto: false,
     colecao: {},                       // id do peixe -> { n, maior }
     mina: { veio: null, prog: 0 },
-    cozinha: { rec: null, falta: 0, prog: 0 },
+    cozinha: { rec: null, ing: null, falta: 0, prog: 0, pago: false },   // o que está no fogo (js/08-oficios.js)
+    panela: [],                        // ingredientes escolhidos na fogueira, antes de cozinhar
+    receitas: Object.fromEntries(RECEITAS_INICIO.map(id => [id, true])),   // receitas que o jogador já descobriu
     forja: { rec: null, falta: 0, prog: 0 },
-    horta: [0, 1, 2, 3].map(() => ({ planta: null, desde: 0 })),
+    horta: [0, 1, 2, 3].map(() => ({ planta: null, desde: 0, bonus: 0, rega: 0 })),   // canteiros da fazenda
     efeitos: [],                       // { tipo, valor, fim (Date.now) }
     minutos: 7 * 60,                   // hora do dia na cena (1 s de jogo = 1 min)
     dia: 1,
@@ -105,7 +108,7 @@ function ganhaMoedas(n) { E.moedas += n; E.total.moedas += n; marcaMudou(); }
 function gasta(n) { if (E.moedas < n) return false; E.moedas -= n; marcaMudou(); return true; }
 function vende(id, n) {
   n = Math.min(n, qtd(id)); if (n <= 0) return;
-  tira(id, n); ganhaMoedas(ITENS[id].valor * n);
+  tira(id, n); ganhaMoedas(Math.round(ITENS[id].valor * n * (1 + efeito('ouro') / 100)));
   try { sfx.moeda(); } catch (e) { }
 }
 
@@ -130,6 +133,15 @@ function carregar() {
   for (const h of HABS) if (!E.hab[h.id]) E.hab[h.id] = { xp: 0 };
   E.equip = Object.assign(base.equip, s.equip);
   E.barcoUp = Object.assign(base.barcoUp, s.barcoUp);
+  E.receitas = Object.assign(base.receitas, s.receitas);
+  for (const c of E.horta) { c.bonus = c.bonus || 0; c.rega = c.rega || 0; }
+  // saves de antes da 0.5.0: a cozinha e a forja andavam sozinhas; devolve o que estava pago e para tudo
+  if (s.cozinha && !('ing' in s.cozinha)) {
+    if (s.cozinha.rec && s.cozinha.pago) { const r = RECEITAS.find(x => x.id === s.cozinha.rec); if (r) for (const [id, n] of Object.entries(r.ing)) E.inv[id] = (E.inv[id] || 0) + n; }
+    E.cozinha = novoEstado().cozinha;
+  }
+  if (E.forja.rec && E.forja.pago) for (const [id, n] of Object.entries(receitaForja(E.forja.rec).ing)) E.inv[id] = (E.inv[id] || 0) + n;
+  const limpo = novoEstado(); E.forja = limpo.forja; E.mina = limpo.mina;
   return true;
 }
 function apagaSave() { try { localStorage.removeItem(SAVE_KEY); } catch (e) { } }

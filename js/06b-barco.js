@@ -4,18 +4,18 @@
    Como em Cast n Chill, A e D (ou as setas) levam o barco para os lados e a câmera vai junto, com o cenário correndo
    em camadas (js/06-cena.js). No canto esquerdo de todo ponto de pesca há um píer com a barraca do pescador: com o
    barco encostado, E desce do barco, o pescador anda pelo píer e, no balcão da barraca, E abre a loja (o Mercado).
-   De volta à ponta do píer, E embarca de novo. A posição do barco fica salva em E.barco (x do mundo). */
+   Seguindo para a esquerda, em terra, ficam a fazenda e a fogueira (js/06c-terra.js). De volta à ponta do píer, E embarca. A posição do barco fica salva em E.barco (x do mundo). */
 
 const PIER = { fim: 96, balcao: 46 };   // o píer vai do x 0 ao fim; o pescador para no balcão da barraca
 const VEL_BARCO = 40, VEL_PE = 30;
-const PE = { ativo: false, atraca: false, x: 0, dir: -1, anda: 0, passo: 0 };
+const PE = { ativo: false, atraca: false, x: 0, dir: -1, anda: 0, passo: 0, rega: 0 };
 const teclas = { esq: false, dir: false };
 let velBarco = 0, _motorT = 0;
 
 const barcoMin = () => PIER.fim + 34;                       // encostado na ponta do píer
 const barcoMax = () => Math.max(barcoMin(), MUNDO - 110);   // sobra água para lançar à direita
 const pertoDoPier = () => !PE.ativo && !PE.atraca && E.barco <= barcoMin() + 30;
-const naBarraca = () => PE.ativo && PE.x <= PIER.balcao + 8;
+const naBarraca = () => PE.ativo && Math.abs(PE.x - PIER.balcao) <= 8;
 const pertoDoBarco = () => PE.ativo && PE.x >= PIER.fim - 22;
 const pescaLivre = () => !PE.ativo && !PE.atraca;           // a pesca só anda com o pescador no barco
 
@@ -34,7 +34,7 @@ function atualizaMundo(dt) {
     velBarco = 0;
     if (quer) {
       PE.dir = quer; PE.anda += dt;
-      PE.x = clamp(PE.x + quer * VEL_PE * dt, PIER.balcao, PIER.fim - 6);
+      PE.x = clamp(PE.x + quer * VEL_PE * dt, TERRA.ini + 14, PIER.fim - 6);
       PE.passo -= dt; if (PE.passo <= 0) { PE.passo = 0.26; sfx.passo(); }
     } else { PE.anda = 0; PE.passo = 0; }
   } else {
@@ -58,7 +58,7 @@ function atualizaMundo(dt) {
 
   // câmera: segue o barco (ou o pescador) com um pouco de atraso
   const foco = PE.ativo ? PE.x : E.barco + 10;
-  const alvo = clamp(foco - W * 0.45, 0, Math.max(0, MUNDO - W));
+  const alvo = clamp(foco - W * 0.45, TERRA.ini, Math.max(TERRA.ini, MUNDO - W));
   CAM.x = Math.abs(alvo - CAM.x) > W ? alvo : lerp(CAM.x, alvo, Math.min(1, dt * 3));
   atualizaBotaoE();
 }
@@ -67,14 +67,14 @@ function atualizaMundo(dt) {
 function apertaE() {
   if (!jogando) return;
   initAudio();
-  if (painelAberto) { if (painelAberto === 'mercado') fechaPainel(); return; }
+  if (painelAberto) { if (PAINEIS_DO_LUGAR.includes(painelAberto)) fechaPainel(); return; }
   if (PE.ativo) {
-    if (naBarraca()) abrePainel('mercado');
-    else if (pertoDoBarco()) embarca();
-    else aviso('Ande até a barraca (A/D ou as setas) ou volte para o barco.');
+    if (pertoDoBarco()) embarca();
+    else if (naBarraca()) abrePainel('mercado');
+    else if (!acaoTerra(true)) aviso(PE.x > 0 ? 'Na esquerda ficam a barraca, a fazenda e a fogueira. O barco fica na ponta do píer.' : 'Ande até um canteiro ou até a fogueira e aperte E.');
   } else if (PE.atraca) return;
   else if (pertoDoPier()) desembarca();
-  else aviso('A barraca do pescador fica no píer, lá na esquerda.');
+  else aviso('O píer fica lá na esquerda: barraca, fazenda e fogueira.');
 }
 function desembarca() {
   if (PESCA.estado !== 'parado' && PESCA.estado !== 'esperando') { aviso('Termine de puxar o peixe primeiro.'); return; }
@@ -85,17 +85,20 @@ function embarca() {
   sfx.embarca(); onda(BARCO.x - 10, WL, 8); respingo(BARCO.x - 10, WL - 2, 4);
 }
 
-/* o botão "E" no HUD (também serve para tocar na tela do celular); no píer o painel da pesca encolhe para não
-   cobrir a barraca */
-let _textoE = null, _noPier = null;
+/* o botão "E" no HUD (também serve para tocar na tela do celular); fora do barco o painel da pesca encolhe para não
+   cobrir a barraca, e o nome do lugar no canto muda (barraca, fazenda, fogueira) */
+const PAINEIS_DO_LUGAR = ['mercado', 'fogueira', 'plantar'];
+let _textoE = null, _noPier = null, _lugar = null;
 function atualizaBotaoE() {
   const noPier = jogando && (PE.ativo || PE.atraca || (pertoDoPier() && PESCA.estado === 'parado'));
   if (noPier !== _noPier) { _noPier = noPier; document.body.classList.toggle('no-pier', noPier); }
   let txt = '';
   if (jogando && !painelAberto) {
-    if (PE.ativo) txt = naBarraca() ? 'Abrir a loja' : pertoDoBarco() ? 'Voltar ao barco' : '';
+    if (PE.ativo) txt = pertoDoBarco() ? 'Voltar ao barco' : naBarraca() ? 'Abrir a loja' : acaoTerra(false);
     else if (pertoDoPier()) txt = 'Descer do barco';
   }
+  const lugar = jogando ? lugarAtual() || pontoAtual().nome : null;
+  if (lugar !== _lugar) { _lugar = lugar; if (lugar) $('hLocal').textContent = lugar; }
   if (txt === _textoE) return;
   _textoE = txt;
   const b = $('bE'); if (!b) return;
@@ -223,7 +226,8 @@ function desenhaPier(t, noite) {
 
 function desenhaPescadorAPe(t, noite) {
   const D = WL - 5, quadro = PE.anda > 0 ? 1 + Math.floor(PE.anda * 8) % 2 : 0;
-  const L = c => noite > 0.3 && PE.x < PIER.balcao + 20 ? mistura(luz(c), mistura(c, '#ffb060', 0.25), 0.3 * noite) : luz(c);
+  const quente = (PE.x > 0 && PE.x < PIER.balcao + 20) || Math.abs(PE.x - FOGUEIRA.x) < 34;   // o lampião da barraca e a fogueira
+  const L = c => noite > 0.3 && quente ? mistura(luz(c), mistura(c, '#ffb060', 0.25), 0.3 * noite) : luz(c);
   sprite(HEROI_PE[quadro], Math.round(PE.x) - 8, D - 20, paletaHeroi(L), PE.dir < 0);
 }
 

@@ -18,7 +18,7 @@ let WL = 134;                         // a linha d'água onde o barco boia; emba
 let MUNDO = 1200;                     // largura do lago inteiro (o píer fica no x = 0)
 const CAM = { x: 0 };                 // onde começa a tela, em x do mundo
 const PAR = { longe: 0.1, medio: 0.22, terra: 0.42 };   // quanto cada camada anda quando a câmera anda 1
-const largCamada = f => Math.ceil(W + (MUNDO - W) * f) + 2;
+const largCamada = f => Math.ceil(W + (MUNDO - TERRA.ini - W) * f) + 2;   // a câmera vai de TERRA.ini (a fazenda) até o fim do lago
 const FASES = ['dia', 'tarde', 'crep', 'noite'];
 const CEUS = {
   dia: { topo: '#3a82cc', meio: '#74b4e2', base: '#cfe8ec', nevoa: '#d6eaee', nuvem: ['#ffffff', '#e0eaf2', '#a9bcd4'], sol: '#fffae0', halo: '#fff0b0' },
@@ -42,18 +42,21 @@ const PAISAGENS = {
     semente: 7, amp: [0.30, 0.17], montes: ['#8a9cc0', '#64809e'], neveMonte: 0.18, colina: '#46705a',
     pinho: ['#5c9450', '#38693c', '#214428'], folhas: [['#eab048', '#c87a2c', '#8a4c1c'], ['#e07034', '#b44c26', '#7a3018'], ['#7aa244', '#527c30', '#2f5420'], ['#d8c050', '#a89434', '#6a5c20']], fracFolha: 0.38,
     margem: '#6e6a48', pedra: '#8a8a80', agua: '#3e98ae', aguaFunda: '#0f3650', chao: '#8e7e54', pedraFundo: '#6a7064', alga: ['#6a9a48', '#3e6a30'],
+    grama: '#6c9c46', chaoTerra: '#6a4a2e',
     corr: 2, vagalumes: true, cabana: true, juncos: true, nenufares: true, patos: true
   },
   rio: {
     semente: 21, amp: [0.34, 0.24], montes: ['#a898a8', '#8a6e64'], neveMonte: 0, colina: '#557050',
     pinho: ['#5e9050', '#3a6438', '#223e26'], folhas: [['#8aaa48', '#5c8034', '#36561e']], fracFolha: 0.2,
     margem: '#8a7a5a', pedra: '#9a8e7c', agua: '#3ea094', aguaFunda: '#0f3a40', chao: '#8a8070', pedraFundo: '#7a746a', alga: ['#7a9a40', '#4a6a2a'],
+    grama: '#7c9a4c', chaoTerra: '#6e5236',
     corr: 14, vagalumes: true, paredao: true, cachoeira: true, juncos: true
   },
   baia: {
     semente: 33, amp: [0.34, 0.22], montes: ['#b4c4dc', '#7484a0'], neveMonte: 0.42, colina: '#5a7480',
     pinho: ['#4a7470', '#2e5050', '#1a3236'], folhas: [], fracFolha: 0,
     margem: '#dce8f0', pedra: '#8a98a8', agua: '#2e6c94', aguaFunda: '#0a2238', chao: '#5a6470', pedraFundo: '#465260', alga: ['#6a7a3a', '#3e4a24'],
+    chaoTerra: '#5a4a3e',
     corr: 4, neva: true, gelo: true, neve: true, aurora: true
   }
 };
@@ -252,7 +255,7 @@ function geraFundo() {
   const P = PAISAGENS[E.ponto] || PAISAGENS.lago;
   const rnd = rngSemente(P.semente * 977 + W);
   const HU = H - WL, B = WL - HOR;   // altura da vista submersa e da faixa de superfície
-  const chaoBase = Math.max(Math.round(HU * 0.55), HU - Math.ceil(100 / K) - 4);   // o fundo fica acima da doca
+  const chaoBase = Math.max(Math.round(HU * 0.55), HU - Math.ceil(64 / K) - 4);   // o fundo fica acima do botão do E
   // cada camada do parallax tem a largura que a câmera chega a mostrar dela
   const LL = largCamada(PAR.longe), LM = largCamada(PAR.medio), LT = largCamada(PAR.terra);
 
@@ -380,6 +383,7 @@ function geraFundo() {
   xv.fillStyle = gv; xv.fillRect(0, 0, W, H);
   fundo = {
     ceu, montesLonge, montesMedio, terra, tintaRefl, agua, neblina, espelho: tela(W + 8, HOR + 2), estrelas, nuvens, fiapos, brilhos, gelos, plantas, nenufares, juncosFrente, vin,
+    chaoTerra: Object.fromEntries(FASES.map(f => [f, geraTerra(P, f)])),
     janela, chamine, cach: P.cachoeira ? { x: cach, y0: Math.min(medio[cach], medio[cach + 6] ?? HOR) + 2, w: 6 } : null,
     chao0, P, ponto: E.ponto, B, HU
   };
@@ -515,7 +519,7 @@ function desenhaCena(t, dt) {
     if (F.t > 0) { cx.globalAlpha = F.t; cx.drawImage(img[F.b], sx, 0, W, h, 0, y, W, h); cx.globalAlpha = 1; }
   };
   const ceuF = k => mistura(CEUS[F.a][k], CEUS[F.b][k], F.t);
-  const CX = Math.round(CAM.x), oL = Math.round(CX * PAR.longe), oM = Math.round(CX * PAR.medio), oT = Math.round(CX * PAR.terra);
+  const CX = Math.round(CAM.x), CR = CX - TERRA.ini, oL = Math.round(CR * PAR.longe), oM = Math.round(CR * PAR.medio), oT = Math.round(CR * PAR.terra);
   const modW = (v, m) => ((v % m) + m) % m;
 
   // clima: de vez em quando chove (na Baía, neva mais forte)
@@ -699,6 +703,9 @@ function desenhaCena(t, dt) {
   // daqui até o barco, tudo está em x do mundo
   cx.save(); cx.translate(-CX, 0);
   const visivel = (x, folga = 40) => x > CX - folga && x < CX + W + folga;
+  // a terra à esquerda do píer (a parte de cima; a de baixo cobre os peixes que passam por baixo do cais)
+  const comTerra = CX < TERRA.margem;
+  if (comTerra) desenhaTerra(t, noite, 'cima');
   // plantas balançando
   const tintaAgua = luz(P.aguaFunda), corAlga = [luz(P.alga[0]), luz(P.alga[1])];
   for (const p of fundo.plantas) {
@@ -727,9 +734,10 @@ function desenhaCena(t, dt) {
     if (b.y <= WL + 1) { bolhas.splice(i, 1); continue; }
     cx.fillStyle = 'rgba(220,245,255,.5)'; cx.fillRect(Math.round(b.x), Math.round(b.y), 1, 1);
   }
+  if (comTerra) desenhaTerra(t, noite, 'baixo');
   // a linha d'água: borda clara ondulando e um brilho logo embaixo
   const corSup = mistura('#ffffff', ceuF('base'), 0.4);
-  for (let x = CX; x < CX + W; x++) {
+  for (let x = Math.max(CX, 1); x < CX + W; x++) {
     const o = Math.sin(x * 0.18 + t * 2.2) + Math.sin(x * 0.07 - t * 1.3) > 1.1 ? -1 : 0;
     cx.fillStyle = corSup; cx.globalAlpha = 0.75 * (0.4 + 0.6 * (1 - noite)); cx.fillRect(x, WL + o, 1, 1);
     cx.globalAlpha = 0.18; cx.fillRect(x, WL + 1 + o, 1, 1);
@@ -779,6 +787,7 @@ function desenhaCena(t, dt) {
   }
 
   // barco, pescador e cachorro; o pescador anda pelo píer quando desce
+  if (comTerra) desenhaFazenda(t, dt, noite);
   posBarco(t);
   desenhaBarco(BARCO.x, BARCO.y, t, noite);
   if (PE.ativo) desenhaPescadorAPe(t, noite);
@@ -796,7 +805,7 @@ function desenhaCena(t, dt) {
     cx.fillStyle = luz('#4a5468'); cx.globalAlpha = chuva * 0.35; cx.fillRect(0, 0, W, WL); cx.globalAlpha = chuva * 0.2; cx.fillRect(0, WL, W, H - WL); cx.globalAlpha = 1;
     if (!P.neva) {
       if (Math.random() < chuva) for (let i = 0; i < Math.ceil(W / 25 * chuva); i++) particulas.push({ tipo: 'chuva', x: rand(-20, W), y: rand(-10, 0), v: rand(150, 200) });
-      if (Math.random() < chuva * dt * 30) onda(CX + rand(0, W), WL, 3);
+      if (Math.random() < chuva * dt * 30) { const ox = CX + rand(0, W); if (ox > 2) onda(ox, WL, 3); }
     }
   }
   // neve e chuva (na tela), vagalumes e fumaça (na camada da margem)

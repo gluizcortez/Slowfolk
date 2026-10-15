@@ -93,7 +93,7 @@ function atualizaPesca(dt) {
     case 'parado':
       P.parado += dt;
       P.boia.x = tip.x; P.boia.y = tip.y + 6;
-      if (!pescaLivre()) { P.parado = 0; estadoPesca(naBarraca() ? 'Aperte E para abrir a loja' : 'No píer: ande até a barraca'); break; }
+      if (!pescaLivre()) { P.parado = 0; estadoPesca('Em terra'); break; }
       if (velBarco) { P.parado = 0; estadoPesca('Navegando...'); break; }
       estadoPesca(E.auto ? 'Preparando o próximo lançamento...' : 'Clique na água para lançar');
       if (E.auto && P.parado > 1.4) lanca();
