@@ -40,7 +40,6 @@ function pontaVara() {
 
 function lanca(xAlvo) {
   if (PESCA.estado !== 'parado') return;
-  initAudio();
   const minX = BARCO.x + 50, maxX = Math.max(minX, CAM.x + W - 12);
   const x = clamp(xAlvo ?? rand(minX, maxX), minX, maxX);
   const y = WL;   // a boia cai na linha d'água; o anzol fica pendurado embaixo
@@ -107,8 +106,8 @@ function atualizaPesca(dt) {
     }
     case 'esperando':
       P.boia.x = P.alvo.x; P.boia.y = P.alvo.y + Math.round(Math.sin(P.t * 2.2) * 0.6);
-      if (P.t > P.belisca && P.t < P.espera - 0.8) { P.belisca = P.t + rand(1.5, 3.5); onda(P.boia.x, P.boia.y + 1, 4); P.boia.y += 1; }
-      if (P.t >= P.espera) { P.estado = 'mordida'; P.t = 0; onda(P.boia.x, P.boia.y, 10); respingo(P.boia.x, P.boia.y, 4); sfx.splash(); }
+      if (P.t > P.belisca && P.t < P.espera - 0.8) { P.belisca = P.t + rand(1.5, 3.5); onda(P.boia.x, P.boia.y + 1, 4); P.boia.y += 1; sfx.belisca(); }
+      if (P.t >= P.espera) { P.estado = 'mordida'; P.t = 0; onda(P.boia.x, P.boia.y, 10); respingo(P.boia.x, P.boia.y, 4); sfx.mordida(); }
       estadoPesca('Esperando uma mordida...' + (PESCA.isca ? ' (' + ITENS[PESCA.isca].nome.toLowerCase() + ')' : ''));
       break;
     case 'mordida':
@@ -126,7 +125,7 @@ function atualizaPesca(dt) {
       if (P.segura) {
         P.tensao += (0.25 + d * 0.3) * (P.puxa ? 3 : 1) * dt;
         P.prog += 0.28 * varaAtual().forca / (1 + d * 0.8) * dt;
-        if (Math.random() < dt * 14) sfx.carretel();
+        sfx.carretel(P.tensao);
       } else {
         P.tensao -= 0.6 * dt;
         if (P.puxa) P.prog -= 0.06 * dt;

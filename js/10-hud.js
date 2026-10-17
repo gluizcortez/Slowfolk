@@ -22,8 +22,9 @@ function atualizaHud(dt) {
 addEventListener('keydown', e => {
   if (!E || !jogando) return;
   if (e.code === 'Escape') { if (painelAberto) fechaPainel(); }
-  else if (e.code === 'KeyM') alternaMudo();
+  else if (e.code === 'KeyM' && !e.repeat) alternaMudo();
   else if (e.code === 'KeyC' && !e.repeat) alternaAuto();
   else if (!e.repeat && ATALHOS[e.code]) abrePainel(ATALHOS[e.code]);
 });
 $('bAuto').addEventListener('click', () => { initAudio(); alternaAuto(); });
+$('bSom').addEventListener('click', alternaMudo);

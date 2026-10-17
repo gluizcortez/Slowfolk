@@ -7,6 +7,7 @@ E.auto = true; E.minutos = 17.6 * 60;
 ajustaTela();
 montaTitulo();
 VISUAL.atualizaBotoes();
+aplicaSom();
 
 let ultimo = performance.now(), tempo = 0, salvaT = 0;
 function quadro(agora) {
@@ -16,6 +17,7 @@ function quadro(agora) {
   if (E.minutos >= 24 * 60) { E.minutos -= 24 * 60; E.dia++; }
   atualizaMundo(dt);
   atualizaPesca(dt);
+  atualizaAudio();
   if (jogando) {
     tickOficios(dt);
     atualizaHud(dt);

@@ -3,8 +3,17 @@
 /* ================= versão e novidades =================
    MAIOR.MENOR.CORREÇÃO, em 0.x enquanto o jogo está em desenvolvimento. MENOR sobe a cada leva de conteúdo novo,
    CORREÇÃO quando só conserta ou ajusta. Quem publicar sobe VERSAO e põe a entrada nova no topo de NOVIDADES. */
-const VERSAO = '0.6.0';
+const VERSAO = '0.7.0';
 const NOVIDADES = [
+  {
+    v: '0.7.0', data: '17/10/2026', titulo: 'O som da água',
+    itens: [
+      'Água calma no lago, correnteza no rio e ondas com espuma e vento na Baía Gelada. O ambiente muda suavemente ao viajar e acompanha a chuva.',
+      'Novos sons de lançamento, boia, mordida, fisgada e captura, com respingos e gotas em estéreo.',
+      'O carretel responde à tensão da linha. O ambiente abaixa um pouco durante a briga para você ouvir a pesca.',
+      'Botão de som disponível durante o jogo, também no celular. M continua ligando e desligando tudo, e a aba fica silenciosa quando está em segundo plano.'
+    ]
+  },
   {
     v: '0.6.0', data: '17/10/2026', titulo: 'O lago ganha uma nova luz',
     itens: [

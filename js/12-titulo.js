@@ -83,7 +83,7 @@ function montaTitulo() {
   $('ttCont').hidden = !temS;
   const somTxt = () => { $('ttSom').textContent = 'Som: ' + (mudo ? 'desligado' : 'ligado'); };
   somTxt();
-  $('ttSom').onclick = () => { initAudio(); mudo = !mudo; try { localStorage.setItem('slowfolk-mudo', mudo ? '1' : '0'); } catch (e) { } somTxt(); sfx.select(); };
+  $('ttSom').onclick = () => { alternaMudo(); sfx.select(); };
   $('ttCont').onclick = () => { initAudio(); sfx.select(); carregar(); entra(true); };
   let certeza = false;
   $('ttNew').onclick = () => {
