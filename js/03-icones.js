@@ -123,6 +123,23 @@ const DESENHOS = {
   'ui:bolsa'(G) { G.m(['....aaaa....', '.....bb.....', '...cccccc...', '..cdddddcc..', '.cddeeddddc.', '.cdddddddcc.', '.cdddddddcc.', '..cccccccc..'], { a: '#c89858', b: '#6a4628', c: '#6a4628', d: '#a87840', e: '#ffd060' }, 2, 4); },
   'ui:chapeu'(G) { G.m(['....aaaaaa....', '...abbbbbbc...', '...bbbbbbbc...', '...dddddddd...', 'abbbbbbbbbbbbc', '.cccccccccccc.'], { a: '#f8e0a0', b: '#e8c060', c: '#a07830', d: '#c04030' }, 1, 5); },
   'ui:moeda'(G) { G.e(8, 8, 6, 6, '#ffc830'); G.e(8, 8, 3.5, 3.5, '#e0a020', false); G.r(7, 6, 2, 4, '#fff0a0'); },
+  // melhorias do barco
+  'ui:motor'(G) {
+    G.m(['.aaaaaa.', 'abbbbbbc', 'addddddc', 'abbbbbbc', 'abbbbbbc', '.cccccc.'], { a: '#ffffff', b: '#d8d8d0', c: '#8a8e90', d: '#c03a2c' }, 4, 1);
+    G.r(7, 7, 2, 6, '#3a3e44'); G.r(5, 12, 6, 2, '#5a5e64'); G.p(4, 13, '#9aa0a8'); G.p(11, 12, '#9aa0a8');
+  },
+  'ui:portavara'(G) {
+    G.l(3, 14, 12, 2, '#6a4a28'); G.l(4, 14, 13, 3, '#c8b060'); G.l(13, 3, 14, 8, '#e8e8e0');
+    G.m(['aaaaaa', 'abbbba', 'abbbba', 'cccccc'], { a: '#9aa0a8', b: '#5a6068', c: '#383c44' }, 2, 10);
+  },
+  'ui:sonar'(G) {
+    G.m(['aaaaaaaaaa', 'abbbbbbbba', 'abccbbbbba', 'abbbcbbbba', 'abbbbbcbba', 'abbbbbbbba', 'aaaaaaaaaa'], { a: '#3a3e44', b: '#1a4a3a', c: '#7aff9a' }, 3, 4);
+    G.r(7, 11, 2, 3, '#5a5e64'); G.p(11, 7, '#7aff9a'); G.p(12, 2, '#9aa0a8'); G.p(12, 3, '#9aa0a8');
+  },
+  'ui:toldo'(G) {
+    for (let x = 1; x < 15; x++) G.r(x, 3, 1, 3, Math.floor((x - 1) / 2) % 2 ? '#e8dcc0' : '#c0503a');
+    G.r(2, 6, 1, 8, '#6a4a28'); G.r(13, 6, 1, 8, '#6a4a28'); G.r(5, 10, 6, 3, '#ffb050'); G.r(6, 9, 4, 1, '#ffe0a0');
+  },
   'ui:cadeado'(G) { G.m(['...aaaa...', '..a....a..', '..a....a..', '.bbbbbbbb.', '.bbbbbbbb.', '.bbbccbbb.', '.bbbccbbb.', '.bbbbbbbb.'], { a: '#9aa0a8', b: '#c89838', c: '#3a2414' }, 3, 3); }
 };
 

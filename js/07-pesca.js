@@ -15,6 +15,7 @@ const pontoAtual = () => PONTOS.find(p => p.id === E.ponto);
 function tempoMordida() {
   const isca = iscaAtual();
   let s = rand(5, 11) * varaAtual().vel * (isca ? ITENS[isca].vel : 1) * (1 - efeito('vel') / 100);
+  s *= 1 - doBarco('portavara') / 100;
   if (E.auto) s *= 1.2;
   return Math.max(1.5, s);
 }
@@ -29,20 +30,20 @@ function sorteiaPeixe(ativa) {
 }
 
 function pontaVara() {
-  const hx = BARCO.x + 9, hy = BARCO.y - 5;
-  let dx = 12, dy = -11;
-  if (PESCA.estado === 'lancando' && PESCA.t < 0.25) { const k = PESCA.t / 0.25; dx = lerp(-5, 13, k); dy = lerp(-13, -8, k); }
-  if (PESCA.estado === 'puxando') { dx = 12; dy = -6 + (PESCA.puxa ? Math.round(Math.sin(performance.now() / 40)) + 2 : 0); }
-  if (PESCA.estado === 'mordida') dy = -9;
+  const hx = BARCO.mx, hy = BARCO.my;
+  let dx = 17, dy = -15;
+  if (PESCA.estado === 'lancando' && PESCA.t < 0.25) { const k = PESCA.t / 0.25; dx = lerp(-8, 19, k); dy = lerp(-19, -11, k); }
+  if (PESCA.estado === 'puxando') { dx = 18; dy = -9 + (PESCA.puxa ? Math.round(Math.sin(performance.now() / 40)) + 3 : 0); }
+  if (PESCA.estado === 'mordida') dy = -12;
   return { hx, hy, x: hx + dx, y: hy + dy };
 }
 
 function lanca(xAlvo) {
   if (PESCA.estado !== 'parado') return;
   initAudio();
-  const minX = BARCO.x + 40, maxX = W - 12;
+  const minX = BARCO.x + 50, maxX = Math.max(minX, CAM.x + W - 12);
   const x = clamp(xAlvo ?? rand(minX, maxX), minX, maxX);
-  const y = Math.round(HOR + (H - HOR) * rand(0.22, 0.55));
+  const y = WL;   // a boia cai na linha d'água; o anzol fica pendurado embaixo
   const isca = iscaAtual(); if (isca) tira(isca);
   PESCA.isca = isca;
   Object.assign(PESCA, { estado: 'lancando', t: 0, alvo: { x, y }, tensao: 0, prog: 0, peixe: null, puxa: false, segura: false, belisca: rand(1, 3) });
@@ -75,7 +76,7 @@ function pegou() {
 
 function mostraPegou(it, f, novo) {
   const el = $('pegou'), R = RARIDADES[it.rar];
-  el.innerHTML = `${icoHtml(it.id)}<b style="color:${R.cor}">${it.nome}</b><small>${R.nome} · ${fmtPeso(f.peso)} · ${it.valor} moedas</small>${novo ? '<small class="novo">Novo no caderno!</small>' : ''}`;
+  el.innerHTML = `${icoHtml(it.id)}<b style="color:${R.cor}">${it.nome}</b><small>${R.nome} · ${fmtPeso(f.peso)} · ${it.valor} de ouro</small>${novo ? '<small class="novo">Novo no caderno!</small>' : ''}`;
   el.hidden = false; el.classList.remove('sai'); void el.offsetWidth;
   clearTimeout(mostraPegou.t1); clearTimeout(mostraPegou.t2);
   mostraPegou.t1 = setTimeout(() => el.classList.add('sai'), 1900);
@@ -92,6 +93,8 @@ function atualizaPesca(dt) {
     case 'parado':
       P.parado += dt;
       P.boia.x = tip.x; P.boia.y = tip.y + 6;
+      if (!pescaLivre()) { P.parado = 0; estadoPesca('Em terra'); break; }
+      if (velBarco) { P.parado = 0; estadoPesca('Navegando...'); break; }
       estadoPesca(E.auto ? 'Preparando o próximo lançamento...' : 'Clique na água para lançar');
       if (E.auto && P.parado > 1.4) lanca();
       break;
@@ -129,7 +132,7 @@ function atualizaPesca(dt) {
         if (P.puxa) P.prog -= 0.06 * dt;
       }
       P.tensao = Math.max(0, P.tensao); P.prog = clamp(P.prog, 0, 1);
-      P.boia.x = lerp(P.alvo.x, tip.x + 6, P.prog); P.boia.y = lerp(P.alvo.y, BARCO.y + 3, P.prog) + (P.puxa ? Math.round(Math.sin(P.t * 30)) : 0);
+      P.boia.x = lerp(P.alvo.x, tip.x + 6, P.prog); P.boia.y = P.alvo.y + (P.puxa ? Math.round(Math.sin(P.t * 30)) : 0);
       if (P.puxa && Math.random() < dt * 6) onda(P.boia.x, P.boia.y, 5);
       if (P.tensao >= 1) { sfx.arrebentou(); recolhe('A linha arrebentou! Solte quando ficar vermelho.'); aviso('A linha arrebentou...'); }
       else if (P.prog >= 1) pegou();
@@ -139,44 +142,97 @@ function atualizaPesca(dt) {
   }
 }
 
+// a pesca acontece na água, então é desenhada em x do mundo (a câmera desloca tudo)
 function desenhaPesca(t) {
+  if (PE.ativo) return;
+  cx.save(); cx.translate(-Math.round(CAM.x), 0);
+  desenhaPescaMundo(t);
+  cx.restore();
+}
+function desenhaPescaMundo(t) {
   const P = PESCA, tip = pontaVara();
   // vara
   const vara = varaAtual(), corV = vara.metal ? METAIS.find(m => m.id === vara.metal).cor : '#c8b060';
-  linha(tip.hx, tip.hy, tip.x, tip.y, corV, '#3a2414');
-  // linha: curva caindo entre a ponta e a boia
-  if (P.estado !== 'parado') {
-    const tensa = P.estado === 'puxando' || P.estado === 'mordida';
-    const mx = (tip.x + P.boia.x) / 2, my = Math.max(tip.y, P.boia.y) + (tensa ? 0 : 8);
-    cx.fillStyle = 'rgba(235,235,225,.75)';
-    let ux = -1, uy = -1;
-    const passos = Math.ceil((Math.abs(P.boia.x - tip.x) + Math.abs(P.boia.y - tip.y)) * 1.5) + 8;
-    for (let i = 0; i <= passos; i++) {
-      const s = i / passos, x = Math.round((1 - s) * (1 - s) * tip.x + 2 * (1 - s) * s * mx + s * s * P.boia.x), y = Math.round((1 - s) * (1 - s) * tip.y + 2 * (1 - s) * s * my + s * s * P.boia.y);
-      if (x !== ux || y !== uy) { cx.fillRect(x, y, 1, 1); ux = x; uy = y; }
-    }
+  linha(tip.hx, tip.hy, tip.x, tip.y, luz(corV), luz('#3a2414'));
+  cx.fillStyle = luz('#2a2a2a'); cx.fillRect(tip.hx + 2, tip.hy - 2, 2, 2);   // carretel
+  const bx = Math.round(P.boia.x), by = Math.round(P.boia.y), corLinha = 'rgba(235,235,225,.7)';
+  if (P.estado === 'parado') {   // boia pendurada na ponta da vara
+    cx.fillStyle = corLinha; for (let y = tip.y + 1; y < tip.y + 5; y++) cx.fillRect(tip.x, y, 1, 1);
+    boia(tip.x, tip.y + 6, false);
+    return;
   }
-  // boia
-  const bx = Math.round(P.boia.x), by = Math.round(P.boia.y);
-  if (P.estado === 'mordida') { cx.fillStyle = '#e83838'; cx.fillRect(bx - 1, by - 1, 2, 1); }
-  else if (P.estado !== 'parado') { cx.fillStyle = '#ffffff'; cx.fillRect(bx - 1, by - 3, 2, 1); cx.fillStyle = '#e83838'; cx.fillRect(bx - 1, by - 2, 2, 2); }
+  // linha: curva caindo entre a ponta e a boia
+  const tensa = P.estado === 'puxando' || P.estado === 'mordida';
+  const mx = (tip.x + P.boia.x) / 2, my = Math.max(tip.y, P.boia.y) + (tensa ? -2 : 10);
+  cx.fillStyle = corLinha;
+  let ux = -1, uy = -1;
+  const passos = Math.ceil((Math.abs(P.boia.x - tip.x) + Math.abs(P.boia.y - tip.y)) * 1.5) + 8;
+  for (let i = 0; i <= passos; i++) {
+    const s = i / passos, x = Math.round((1 - s) * (1 - s) * tip.x + 2 * (1 - s) * s * mx + s * s * P.boia.x), y = Math.round((1 - s) * (1 - s) * tip.y + 2 * (1 - s) * s * my + s * s * P.boia.y);
+    if (x !== ux || y !== uy) { cx.fillRect(x, y, 1, 1); ux = x; uy = y; }
+  }
+  // embaixo d'água: a linha descendo até o anzol, a isca e os peixes
+  const fundoMax = Math.min(28, (fundo ? fundo.chao0 : 40) - 8), tinta = luz((fundo ? fundo.P : PAISAGENS.lago).aguaFunda);
+  if (P.estado === 'lancando') { cx.fillStyle = corLinha; cx.fillRect(bx, by + 2, 1, 3); }
+  else if (P.estado === 'esperando' || P.estado === 'mordida') {
+    const ay = WL + fundoMax + Math.round(Math.sin(t * 1.3) * 1), ax = bx + Math.round(Math.sin(t * 0.9) * 1.5);
+    cx.fillStyle = 'rgba(225,235,230,.4)'; for (let y = WL + 1; y < ay; y++) cx.fillRect(Math.round(lerp(bx, ax, (y - WL) / (ay - WL))), y, 1, 1);
+    anzol(ax, ay, P.isca);
+    // uma sombra de peixe chega perto do anzol quando a mordida está para vir
+    if (!P.visita) P.visita = { dir: Math.random() < 0.5 ? 1 : -1, len: randi(8, 16) };
+    const falta = P.estado === 'mordida' ? 0 : P.espera - P.t;
+    if (falta < 3) {
+      const k = 1 - falta / 3, dist = lerp(36, 2, Math.pow(k, 1.5));
+      const sx = ax - P.visita.dir * (dist + (P.estado === 'mordida' ? Math.sin(t * 25) * 1.5 : 0)), sy = ay + Math.sin(t * 2) * 1.5;
+      const sombra = mistura(tinta, '#000000', 0.35);
+      cx.globalAlpha = Math.min(1, k * 1.6) * 0.75; desenhaPeixe(sx, sy, P.visita.len, [sombra, sombra, sombra], P.visita.dir, t, tinta, 0); cx.globalAlpha = 1;
+    }
+  } else if (P.estado === 'puxando' && P.peixe) {
+    // o peixe fisgado aparece com as cores dele, brigando e vindo para a superfície
+    const it = ITENS[P.peixe.id], len = tamPeixe(P.peixe.id, P.peixe.peso), prof = lerp(fundoMax, 5, P.prog);
+    const fx = bx + 4 + (P.puxa ? Math.round(Math.sin(t * 22) * 2) : Math.round(Math.sin(t * 3) * 1)), fy = WL + prof + (P.puxa ? Math.round(Math.cos(t * 17) * 1.5) : 0);
+    cx.fillStyle = 'rgba(225,235,230,.5)'; for (let y = WL + 1; y < fy; y++) cx.fillRect(Math.round(lerp(bx, fx, (y - WL) / Math.max(1, fy - WL))), y, 1, 1);
+    desenhaPeixe(fx, fy, len, it.ico.c.map(c => luz(c)), 1, t * (P.puxa ? 2.5 : 1), tinta, 0.15);
+    if (P.puxa && Math.random() < 0.3) bolhas.push({ x: fx, y: fy - 2, t: 0 });
+  }
+  if (P.estado === 'parado' || P.estado === 'lancando') P.visita = null;
+  // boia (na mordida ela afunda e só a pontinha aparece)
+  if (P.estado === 'mordida') { cx.fillStyle = '#e83838'; cx.fillRect(bx - 1, WL, 3, 1); cx.fillStyle = 'rgba(232,56,56,.4)'; cx.fillRect(bx - 1, WL + 2, 3, 2); }
+  else boia(bx, by, P.estado === 'esperando' || P.estado === 'puxando');
   // o "!" da mordida
   if (P.estado === 'mordida') {
-    const yy = by - 12 - Math.round(Math.abs(Math.sin(t * 12)) * 2);
-    cx.fillStyle = '#000'; cx.fillRect(bx - 2, yy - 1, 4, 9);
-    cx.fillStyle = '#ffd34d'; cx.fillRect(bx - 1, yy, 2, 5); cx.fillRect(bx - 1, yy + 6, 2, 1);
+    const yy = WL - 18 - Math.round(Math.abs(Math.sin(t * 12)) * 2);
+    cx.fillStyle = '#1a1018'; cx.fillRect(bx - 2, yy - 1, 5, 11);
+    cx.fillStyle = '#ffd34d'; cx.fillRect(bx - 1, yy, 3, 6); cx.fillRect(bx - 1, yy + 7, 3, 2);
+    cx.fillStyle = '#fff4b0'; cx.fillRect(bx - 1, yy, 1, 5);
   }
   // barra de tensão e de progresso enquanto puxa
   if (P.estado === 'puxando') {
-    const w = 44, x0 = Math.round(clamp(bx - w / 2, 4, W - w - 4)), y0 = Math.round(Math.max(HOR + 2, by - 18));
-    cx.fillStyle = '#000'; cx.fillRect(x0 - 1, y0 - 1, w + 2, 9);
+    const w = 52, x0 = Math.round(clamp(bx - w / 2, CAM.x + 4, CAM.x + W - w - 4)), y0 = Math.round(Math.max(4, WL - 30));
+    cx.fillStyle = '#0b0710'; cx.fillRect(x0 - 2, y0 - 2, w + 4, 12);
+    cx.fillStyle = '#7a5a34'; cx.fillRect(x0 - 1, y0 - 1, w + 2, 1); cx.fillRect(x0 - 1, y0 + 8, w + 2, 1); cx.fillRect(x0 - 1, y0 - 1, 1, 10); cx.fillRect(x0 + w, y0 - 1, 1, 10);
     cx.fillStyle = '#1a1420'; cx.fillRect(x0, y0, w, 4);
     const tw = Math.round(clamp(P.tensao, 0, 1) * w);
     cx.fillStyle = P.tensao > 0.75 ? '#e83838' : P.tensao > 0.45 ? '#f0a83c' : '#9fd65a'; cx.fillRect(x0, y0, tw, 4);
+    cx.fillStyle = 'rgba(255,255,255,.3)'; cx.fillRect(x0, y0, tw, 1);
     if (P.puxa) { cx.fillStyle = Math.floor(t * 8) % 2 ? '#ff6050' : '#ffd0c0'; cx.fillRect(x0 + w - 3, y0, 3, 4); }
-    cx.fillStyle = '#1a1420'; cx.fillRect(x0, y0 + 5, w, 2);
-    cx.fillStyle = '#58a6ff'; cx.fillRect(x0, y0 + 5, Math.round(P.prog * w), 2);
+    cx.fillStyle = '#1a1420'; cx.fillRect(x0, y0 + 5, w, 3);
+    cx.fillStyle = '#58a6ff'; cx.fillRect(x0, y0 + 5, Math.round(P.prog * w), 3);
+    cx.fillStyle = 'rgba(255,255,255,.3)'; cx.fillRect(x0, y0 + 5, Math.round(P.prog * w), 1);
   }
+}
+
+// boia vermelha e branca com contorno; na água fica meio afundada
+function boia(x, y, naAgua) {
+  cx.fillStyle = '#1a1018'; cx.fillRect(x - 2, y - 4, 5, naAgua ? 5 : 7);
+  cx.fillStyle = '#f4f0e8'; cx.fillRect(x - 1, y - 3, 3, 2);
+  cx.fillStyle = '#e03a30'; cx.fillRect(x - 1, y - 1, 3, naAgua ? 1 : 3);
+  cx.fillStyle = '#1a1018'; cx.fillRect(x, y - 5, 1, 1);
+  if (naAgua) { cx.fillStyle = 'rgba(224,58,48,.35)'; cx.fillRect(x - 1, y + 1, 3, 2); }
+}
+function anzol(x, y, isca) {
+  cx.fillStyle = 'rgba(200,210,215,.8)'; cx.fillRect(x, y, 1, 3); cx.fillRect(x + 1, y + 3, 1, 1); cx.fillRect(x + 2, y + 2, 1, 1);
+  if (isca) { cx.fillStyle = 'rgba(232,140,150,.85)'; cx.fillRect(x - 1, y + 1, 1, 2); cx.fillRect(x + 1, y + 2, 1, 1); }
 }
 
 function linha(x0, y0, x1, y1, cor, cabo) {
@@ -187,6 +243,7 @@ function linha(x0, y0, x1, y1, cor, cabo) {
 /* entrada: clique na água ou Espaço */
 function acaoPesca(xTela, desce) {
   const P = PESCA;
+  if (desce && !pescaLivre()) return;
   if (desce) {
     initAudio();
     if (P.estado === 'parado' && !E.auto) lanca(xTela);
@@ -195,7 +252,7 @@ function acaoPesca(xTela, desce) {
     else if (P.estado === 'esperando' && !E.auto) recolhe('Linha recolhida.');
   } else P.segura = false;
 }
-cv.addEventListener('pointerdown', e => { if (!E || !jogando) return; acaoPesca(e.clientX / K, true); });
+cv.addEventListener('pointerdown', e => { if (!E || !jogando) return; acaoPesca(e.clientX / K + CAM.x, true); });
 addEventListener('pointerup', () => { if (E) acaoPesca(0, false); });
 addEventListener('keydown', e => {
   if (!E || !jogando || e.repeat) return;

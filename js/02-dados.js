@@ -92,7 +92,7 @@ for (const m of METAIS) {
 item('vara_bambu', { nome: 'Vara de bambu', tipo: 'equip', slot: 'vara', valor: 0, vel: 1, forca: 1, sorte: 0, ico: { f: 'vara', c: ['#c8b060'] } });
 item('picareta_velha', { nome: 'Picareta velha', tipo: 'equip', slot: 'picareta', valor: 0, pic: 1, ico: { f: 'picareta', c: ['#8a7058'] } });
 
-/* horta: semente -> colheita; `tempo` em segundos de relógio (cresce com o jogo fechado) */
+/* fazenda: semente -> colheita; `tempo` em segundos de relógio (cresce com o jogo fechado) */
 const PLANTAS = [
   { id: 'batata', nome: 'Batata', nivel: 1, tempo: 60, custo: 4, colhe: [2, 3], valor: 5, xp: 8, cor: '#c8a060', folha: '#5a9a3a' },
   { id: 'cenoura', nome: 'Cenoura', nivel: 1, tempo: 90, custo: 6, colhe: [2, 3], valor: 7, xp: 10, cor: '#f08830', folha: '#6ab040' },
@@ -107,34 +107,69 @@ for (const p of PLANTAS) {
   item('sem_' + p.id, { nome: 'Sementes de ' + p.nome.toLowerCase(), tipo: 'semente', valor: Math.ceil(p.custo / 2), compra: p.custo, ico: { f: 'semente', c: [p.cor] } });
 }
 
-/* iscas: uma por lançamento, a de cima da lista é usada primeiro */
-const ISCAS = ['isca_milho', 'minhoca'];
+/* iscas: uma por lançamento, a de cima da lista (a melhor) é usada primeiro */
+const ISCAS = ['isca_brilho', 'grilo', 'isca_milho', 'minhoca'];
 item('minhoca', { nome: 'Minhoca', tipo: 'isca', valor: 1, compra: 3, vel: 0.85, sorte: 2, ico: { f: 'minhoca', c: ['#d87878'] } });
-item('isca_milho', { nome: 'Isca de milho', tipo: 'isca', valor: 3, vel: 0.8, sorte: 5, ico: { f: 'isca', c: ['#f8d040'] } });
+item('isca_milho', { nome: 'Isca de milho', tipo: 'isca', valor: 3, compra: 5, vel: 0.8, sorte: 5, ico: { f: 'isca', c: ['#f8d040'] } });
+item('grilo', { nome: 'Grilo', tipo: 'isca', valor: 3, compra: 8, vel: 0.76, sorte: 8, ico: { f: 'isca', c: ['#7a9a3a'] } });
+item('isca_brilho', { nome: 'Isca brilhante', tipo: 'isca', valor: 8, compra: 20, vel: 0.68, sorte: 12, ico: { f: 'isca', c: ['#7ae0ff'] } });
 
-/* cozinha: ingredientes -> prato; pratos vendem bem ou, comidos, dão um efeito por um tempo */
+/* a barraca do pescador (no píer): o que a dona Lurdes vende por ouro */
+// iscas: [id, quantos vêm no pacote, nível de pesca para comprar]
+const ISCAS_LOJA = [['minhoca', 10, 1], ['isca_milho', 5, 3], ['grilo', 5, 8], ['isca_brilho', 5, 15]];
+// varas compradas (as de metal saem da forja)
+const VARAS_LOJA = [
+  { id: 'vara_carvalho', nome: 'Vara de carvalho', nivel: 1, preco: 80, vel: 0.92, forca: 1.15, sorte: 1, cor: '#a8743c' },
+  { id: 'vara_fibra', nome: 'Vara de fibra', nivel: 5, preco: 350, vel: 0.84, forca: 1.35, sorte: 3, cor: '#e8e4d0' },
+  { id: 'vara_carbono', nome: 'Vara de carbono', nivel: 12, preco: 1400, vel: 0.72, forca: 1.7, sorte: 6, cor: '#4a5058' },
+  { id: 'vara_mestre', nome: 'Vara do mestre', nivel: 20, preco: 5000, vel: 0.6, forca: 2.1, sorte: 10, cor: '#d04a3a' }
+];
+for (const v of VARAS_LOJA) item(v.id, { nome: v.nome, tipo: 'equip', slot: 'vara', valor: Math.round(v.preco * 0.4), compra: v.preco, vel: v.vel, forca: v.forca, sorte: v.sorte, ico: { f: 'vara', c: [v.cor] } });
+// melhorias do barco: cada nível soma `por` ao efeito; `precos` tem um preço por nível
+const UPGRADES_BARCO = [
+  { id: 'motor', nome: 'Motor', ico: 'ui:motor', por: 30, txt: n => `barco ${n}% mais rápido`, precos: [150, 600, 2000] },
+  { id: 'portavara', nome: 'Porta-vara', ico: 'ui:portavara', por: 7, txt: n => `fisgada ${n}% mais rápida`, precos: [250, 900, 3000] },
+  { id: 'sonar', nome: 'Sonar de peixe', ico: 'ui:sonar', por: 3, txt: n => `+${n}% de sorte`, precos: [400, 1500, 4500] },
+  { id: 'toldo', nome: 'Toldo aquecido', ico: 'ui:toldo', por: 2, txt: n => `+${n} de calor`, precos: [300, 1200] }
+];
+
+/* cozinha (na fogueira): ingredientes na panela -> prato; pratos vendem bem ou, comidos, dão um efeito por um tempo.
+   A receita sai quando a panela tem exatamente aqueles ingredientes; a primeira vez que acerta, ela entra no caderno.
+   Qualquer outra mistura de peixes e colheita vira um prato simples (PRATOS_SIMPLES). */
 const EFEITOS = {
   vel: { nome: 'Fisgada rápida', fmt: v => '+' + v + '% velocidade de pesca' },
   sorte: { nome: 'Sorte', fmt: v => '+' + v + '% chance de peixe raro' },
   mina: { nome: 'Braço forte', fmt: v => '+' + v + '% velocidade na mina' },
   xp: { nome: 'Barriga cheia', fmt: v => '+' + v + '% de experiência' },
-  calor: { nome: 'Quentinho', fmt: v => '+' + v + ' de calor' }
+  calor: { nome: 'Quentinho', fmt: v => '+' + v + ' de calor' },
+  ouro: { nome: 'Boa lábia', fmt: v => '+' + v + '% de ouro nas vendas' }
 };
 const RECEITAS = [
   { id: 'lambari_frito', nome: 'Lambari frito', nivel: 1, tempo: 3, xp: 8, ing: { lambari: 2 }, valor: 10, cor: '#e0a040', ef: ['vel', 5, 120] },
+  { id: 'pure_cenoura', nome: 'Purê com cenoura', nivel: 1, tempo: 3, xp: 8, ing: { batata: 1, cenoura: 1 }, valor: 14, cor: '#f0c060', ef: ['ouro', 5, 180] },
   { id: 'tilapia_grelhada', nome: 'Tilápia grelhada', nivel: 2, tempo: 4, xp: 14, ing: { tilapia: 1, batata: 1 }, valor: 20, cor: '#d8b070', ef: ['sorte', 3, 180] },
+  { id: 'caldo_peixe', nome: 'Caldo de peixe', nivel: 3, tempo: 4, xp: 16, ing: { lambari: 1, batata: 1, cenoura: 1 }, valor: 22, cor: '#d0b080', ef: ['xp', 5, 240] },
   { id: 'isca_milho', nome: 'Isca de milho', nivel: 4, tempo: 3, xp: 10, ing: { milho: 2 }, faz: 5 },
-  { id: 'ensopado_carpa', nome: 'Ensopado de carpa', nivel: 6, tempo: 6, xp: 30, ing: { carpa: 1, batata: 1, cenoura: 1 }, valor: 48, cor: '#c08040', ef: ['mina', 15, 240] },
+  { id: 'ensopado_carpa', nome: 'Ensopado de carpa', nivel: 6, tempo: 6, xp: 30, ing: { carpa: 1, batata: 1, cenoura: 1 }, valor: 48, cor: '#c08040', ef: ['ouro', 10, 300] },
   { id: 'moqueca', nome: 'Moqueca de traíra', nivel: 10, tempo: 8, xp: 55, ing: { traira: 1, tomate: 1, pimenta: 1 }, valor: 115, cor: '#e06830', ef: ['sorte', 6, 300] },
   { id: 'sopa_quente', nome: 'Sopa apimentada', nivel: 12, tempo: 7, xp: 45, ing: { pimenta: 2, abobora: 1 }, valor: 90, cor: '#d84020', ef: ['calor', 3, 600] },
   { id: 'truta_ervas', nome: 'Truta com ervas', nivel: 15, tempo: 8, xp: 60, ing: { truta: 1, ervas: 1 }, valor: 70, cor: '#d09070', ef: ['vel', 10, 300] },
   { id: 'torta_abobora', nome: 'Torta de abóbora', nivel: 16, tempo: 10, xp: 70, ing: { abobora: 1, milho: 2 }, valor: 140, cor: '#e89030', ef: ['xp', 10, 300] },
-  { id: 'sopa_bagre', nome: 'Sopa de bagre', nivel: 18, tempo: 9, xp: 75, ing: { bagre: 1, cenoura: 1, milho: 1 }, valor: 95, cor: '#b09060', ef: ['mina', 25, 300] },
+  { id: 'sopa_bagre', nome: 'Sopa de bagre', nivel: 18, tempo: 9, xp: 75, ing: { bagre: 1, cenoura: 1, milho: 1 }, valor: 95, cor: '#b09060', ef: ['vel', 12, 300] },
   { id: 'caldeirada', nome: 'Caldeirada', nivel: 22, tempo: 12, xp: 110, ing: { pintado: 1, tomate: 2, abobora: 1 }, valor: 260, cor: '#d06038', ef: ['sorte', 8, 420] },
   { id: 'salmao_assado', nome: 'Salmão assado', nivel: 28, tempo: 14, xp: 180, ing: { salmao: 1, ervas: 1, batata: 2 }, valor: 560, cor: '#f08060', ef: ['sorte', 12, 420] },
   { id: 'bacalhoada', nome: 'Bacalhoada', nivel: 30, tempo: 12, xp: 160, ing: { bacalhau: 2, batata: 2, tomate: 1 }, valor: 200, cor: '#e8d0a0', ef: ['calor', 5, 900] }
 ];
 for (const r of RECEITAS) if (!r.faz) item(r.id, { nome: r.nome, tipo: 'prato', valor: r.valor, ef: r.ef, ico: { f: 'prato', c: [r.cor] } });
+const RECEITAS_INICIO = ['lambari_frito'];   // a dona Lurdes já ensina esta; as outras o jogador descobre na panela
+const PANELA_MAX = 5;
+// o que sai quando a mistura não é receita: só peixe, só colheita ou os dois juntos
+const PRATOS_SIMPLES = {
+  peixe: { id: 'peixe_brasa', nome: 'Peixe na brasa', valor: 6, cor: '#c89058', ef: ['vel', 3, 90] },
+  cultivo: { id: 'legumes_brasa', nome: 'Legumes na brasa', valor: 5, cor: '#a0b050', ef: ['xp', 3, 90] },
+  misto: { id: 'cozido_roca', nome: 'Cozido da roça', valor: 10, cor: '#b08050', ef: ['sorte', 2, 120] }
+};
+for (const p of Object.values(PRATOS_SIMPLES)) item(p.id, { nome: p.nome, tipo: 'prato', valor: p.valor, ef: p.ef, ico: { f: 'prato', c: [p.cor] } });
 
 /* habilidades: cada uma tem nível e experiência */
 const HABS = [
@@ -150,3 +185,5 @@ const XP_NIVEL = [0, 0];
 for (let n = 2; n <= NIVEL_MAX + 1; n++) XP_NIVEL[n] = XP_NIVEL[n - 1] + Math.round(60 * Math.pow(1.17, n - 2));
 
 const CANTEIRO_PRECO = [0, 0, 0, 0, 150, 400, 900, 2000, 4500, 9000];   // os 4 primeiros já vêm; depois, 6 a mais para comprar
+// regar: o canteiro fica molhado por `dur(planta)` segundos e, molhado, cresce `mult` vezes mais rápido
+const REGA = { mult: 2.5, dur: p => Math.max(30, Math.round(p.tempo * 0.4)) };

@@ -13,6 +13,7 @@ function quadro(agora) {
   // o relógio da cena: 1 s = 1 min (na tela de início o tempo anda devagar)
   E.minutos += dt * (jogando ? 1 : 0.15);
   if (E.minutos >= 24 * 60) { E.minutos -= 24 * 60; E.dia++; }
+  atualizaMundo(dt);
   atualizaPesca(dt);
   if (jogando) {
     tickOficios(dt);
