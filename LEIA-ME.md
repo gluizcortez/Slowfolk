@@ -6,6 +6,14 @@ Abra `index.html` com dois cliques. Não precisa de servidor, de build nem de in
 
 A estrutura, o visual e as fontes seguem o Under Darkness: JavaScript puro em scripts numerados, tudo desenhado por código num canvas de baixa resolução esticado com pixels nítidos, painéis de pedra com moldura de bronze e a fonte pixel UD Pixel.
 
+## Visual e desempenho
+
+O botão **Visual: cinema / leve**, no menu e no canto inferior direito durante o jogo, controla os efeitos. A preferência é salva em `slowfolk-visual`, separada do progresso. O modo cinema acrescenta iluminação em pixel art, partículas, vegetação próxima e um shader WebGL com bloom suave, correção de cor, refração e cáusticas (os desenhos de luz embaixo d'água). O modo leve mantém as novas paisagens e sprites, reduzindo os efeitos e usando apenas Canvas 2D.
+
+`js/06d-visual.js` apresenta o canvas original em um segundo canvas, na mesma resolução baixa e sem suavizar os pixels. A interface e os controles continuam no HTML/canvas original. Sem WebGL, ou durante uma perda de contexto gráfico, o jogo continua com o renderizador 2D; quando o contexto volta, os efeitos são restaurados. A preferência do sistema por movimento reduzido pausa os novos efeitos decorativos de vento e refração. As luzes são texturas reutilizadas, e a paisagem estática continua em cache por fase do dia.
+
+Para validar em um servidor local: `python3 -m http.server 8000 --bind 127.0.0.1`. Com Python, Playwright e Chromium disponíveis, rode `python3 tests/visual_smoke.py`. O teste cobre os três pontos de pesca, horários, chuva, celular, controles, save, modo leve e perda/restauração de WebGL. Opcionalmente, `SLOWFOLK_SCREENSHOTS=/tmp/slowfolk-capturas` salva as capturas desta execução; `SLOWFOLK_URL` altera o endereço e `CHROMIUM_PATH` seleciona o executável do navegador. Essas ferramentas são apenas de validação, sem dependências de execução do site.
+
 ## Versão e novidades
 
 A versão e as notas ficam em `js/11-versao.js` (`VERSAO` e `NOVIDADES`); a tela de início mostra as duas.
@@ -47,6 +55,7 @@ A versão e as notas ficam em `js/11-versao.js` (`VERSAO` e `NOVIDADES`); a tela
 | 06-cena | a cena vista de lado, como em Cast n Chill: céu, sol, lua, estrelas e aurora, nuvens, montanhas, floresta de pinheiros e árvores de outono, cabana, cachoeira, a faixa de superfície com o reflexo ondulando e, embaixo da linha d'água (`WL`), a vista submersa com chão, algas, raios de luz e o cardume (`desenhaPeixe` pinta qualquer peixe a partir das cores do item). Também o barco com motor e lanterna, o pescador (veste as cores da armadura), o cachorro, neblina, chuva, neve, pássaros e patos. Tudo que não mexe é pintado uma vez em 4 paletas (dia, tarde, crepúsculo, noite) e cada quadro mistura duas; `luz(cor)` dá a cor na luz do quadro. `PAISAGENS` define a cara de cada ponto de pesca. O lago tem a largura `MUNDO` (mais que a tela) e a câmera `CAM` anda junto com o barco: o céu fica parado, cada camada de paisagem anda na fração de `PAR`, e o que está na água (peixes, plantas, píer, barco, boia) usa x do mundo. O reflexo é copiado a cada quadro da parte de cima da tela |
 | 06b-barco | o barco andando (A/D, setas), a câmera seguindo, o píer com a barraca do pescador no x = 0, o pescador descendo e andando, a tecla E (descer, abrir a loja, embarcar; em terra chama `acaoTerra`), o nome do lugar no HUD e as setas de toque |
 | 06c-terra | a terra à esquerda do píer (de `TERRA.ini` até o x 0): o chão parado pintado por paleta (`geraTerra`: campo, trilha, terra em corte, muro do cais, cerca, árvores), os canteiros da fazenda (`xCanteiro(i)`) com as plantas crescendo, a placa do canteiro novo, a fogueira com tripé, panela, tábua e cesto, e o que o E faz em terra (`acaoTerra`) |
+| 06d-visual | iluminação reutilizável, atmosfera, vegetação em primeiro plano, preferência de qualidade e apresentação opcional em WebGL com refração, cáusticas, bloom e cor; fallback automático para Canvas 2D |
 | 07-pesca | a pesca: estados, mordida, fisgada, a briga com tensão e progresso, Modo calmo e a pesca com o jogo fechado; a boia fica na linha d'água e o anzol, a sombra do peixe chegando e o peixe fisgado aparecem embaixo d'água |
 | 08-oficios | a cozinha (panela, `pratoDaPanela`, só anda perto da fogueira), a fazenda (`crescido`, `rega`, `planta`, `colhe`), a mina e a forja guardadas; `tickOficios(dt)`; `recuperaTempo()` |
 | 09-paineis | os painéis, um por função em `PAINEIS` (`ONDE` diz em que lugar cada ofício abre), as ações (`data-a`) e a dica dos itens |

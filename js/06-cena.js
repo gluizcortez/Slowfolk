@@ -21,17 +21,17 @@ const PAR = { longe: 0.1, medio: 0.22, terra: 0.42 };   // quanto cada camada an
 const largCamada = f => Math.ceil(W + (MUNDO - TERRA.ini - W) * f) + 2;   // a câmera vai de TERRA.ini (a fazenda) até o fim do lago
 const FASES = ['dia', 'tarde', 'crep', 'noite'];
 const CEUS = {
-  dia: { topo: '#3a82cc', meio: '#74b4e2', base: '#cfe8ec', nevoa: '#d6eaee', nuvem: ['#ffffff', '#e0eaf2', '#a9bcd4'], sol: '#fffae0', halo: '#fff0b0' },
-  tarde: { topo: '#4c6ebc', meio: '#ae98c0', base: '#ffcc90', nevoa: '#f2d0b0', nuvem: ['#fff2dc', '#f4c6a4', '#bc8c9c'], sol: '#fff2c4', halo: '#ffc070' },
-  crep: { topo: '#1e2254', meio: '#783e76', base: '#f2825a', nevoa: '#bc7486', nuvem: ['#ffb48a', '#de7670', '#743e66'], sol: '#ffdc94', halo: '#ff8a50' },
-  noite: { topo: '#05081c', meio: '#0e1536', base: '#232e5a', nevoa: '#28325e', nuvem: ['#48528a', '#323a6a', '#1e2448'], sol: '#eef0ff', halo: '#7a8ad0' }
+  dia: { topo: '#286b9c', meio: '#76b9c6', base: '#e3e8ba', nevoa: '#bdd8cd', nuvem: ['#fff8df', '#d7e5d7', '#91b4b7'], sol: '#fffbe0', halo: '#ffe5a1' },
+  tarde: { topo: '#384e86', meio: '#bd8293', base: '#ffd493', nevoa: '#dbac94', nuvem: ['#fff0c1', '#eeaf87', '#9e728c'], sol: '#fff5ca', halo: '#ffba68' },
+  crep: { topo: '#151d43', meio: '#745679', base: '#ed986b', nevoa: '#997f94', nuvem: ['#f9b28a', '#bc7684', '#574565'], sol: '#ffe4a0', halo: '#ff9960' },
+  noite: { topo: '#070f24', meio: '#172a4b', base: '#38546b', nevoa: '#344f64', nuvem: ['#738599', '#425875', '#263b58'], sol: '#eef0ff', halo: '#91b9de' }
 };
 // como cada fase pinta as coisas: escurece (k) e puxa para uma tinta (tk)
 const LUZES = {
   dia: { k: 1, tinta: '#fff4e0', tk: 0 },
   tarde: { k: 0.95, tinta: '#ffa868', tk: 0.13 },
   crep: { k: 0.7, tinta: '#b8507a', tk: 0.24 },
-  noite: { k: 0.34, tinta: '#18204c', tk: 0.42 }
+  noite: { k: 0.48, tinta: '#17334b', tk: 0.34 }
 };
 // a hora do dia em quadros-chave: [hora, fase]
 const HORAS = [[0, 'noite'], [4.5, 'noite'], [5.5, 'crep'], [6.5, 'tarde'], [8, 'dia'], [16, 'dia'], [17.5, 'tarde'], [18.7, 'crep'], [19.8, 'noite'], [24, 'noite']];
@@ -39,21 +39,21 @@ const HORAS = [[0, 'noite'], [4.5, 'noite'], [5.5, 'crep'], [6.5, 'tarde'], [8, 
 /* cada ponto de pesca tem a sua paisagem */
 const PAISAGENS = {
   lago: {
-    semente: 7, amp: [0.30, 0.17], montes: ['#8a9cc0', '#64809e'], neveMonte: 0.18, colina: '#46705a',
+    semente: 7, amp: [0.51, 0.29], montes: ['#879eae', '#506f7d'], neveMonte: 0.25, colina: '#3f6459',
     pinho: ['#5c9450', '#38693c', '#214428'], folhas: [['#eab048', '#c87a2c', '#8a4c1c'], ['#e07034', '#b44c26', '#7a3018'], ['#7aa244', '#527c30', '#2f5420'], ['#d8c050', '#a89434', '#6a5c20']], fracFolha: 0.38,
-    margem: '#6e6a48', pedra: '#8a8a80', agua: '#3e98ae', aguaFunda: '#0f3650', chao: '#8e7e54', pedraFundo: '#6a7064', alga: ['#6a9a48', '#3e6a30'],
+    margem: '#857751', pedra: '#929280', agua: '#328f98', aguaFunda: '#102f48', chao: '#92926a', pedraFundo: '#637c73', alga: ['#82ad65', '#3d785a'],
     grama: '#6c9c46', chaoTerra: '#6a4a2e',
     corr: 2, vagalumes: true, cabana: true, juncos: true, nenufares: true, patos: true
   },
   rio: {
-    semente: 21, amp: [0.34, 0.24], montes: ['#a898a8', '#8a6e64'], neveMonte: 0, colina: '#557050',
+    semente: 21, amp: [0.55, 0.34], montes: ['#a494a2', '#806f72'], neveMonte: 0, colina: '#557050',
     pinho: ['#5e9050', '#3a6438', '#223e26'], folhas: [['#8aaa48', '#5c8034', '#36561e']], fracFolha: 0.2,
     margem: '#8a7a5a', pedra: '#9a8e7c', agua: '#3ea094', aguaFunda: '#0f3a40', chao: '#8a8070', pedraFundo: '#7a746a', alga: ['#7a9a40', '#4a6a2a'],
     grama: '#7c9a4c', chaoTerra: '#6e5236',
     corr: 14, vagalumes: true, paredao: true, cachoeira: true, juncos: true
   },
   baia: {
-    semente: 33, amp: [0.34, 0.22], montes: ['#b4c4dc', '#7484a0'], neveMonte: 0.42, colina: '#5a7480',
+    semente: 33, amp: [0.64, 0.38], montes: ['#bdced8', '#708da6'], neveMonte: 0.48, colina: '#5a7480',
     pinho: ['#4a7470', '#2e5050', '#1a3236'], folhas: [], fracFolha: 0,
     margem: '#dce8f0', pedra: '#8a98a8', agua: '#2e6c94', aguaFunda: '#0a2238', chao: '#5a6470', pedraFundo: '#465260', alga: ['#6a7a3a', '#3e4a24'],
     chaoTerra: '#5a4a3e',
@@ -128,6 +128,8 @@ function montanha(x, topo, base, cor, neve, f, nev) {
   const c = naLuz(cor, f, nev), cl = naLuz(mistura(cor, '#ffffff', 0.22), f, nev), cs = naLuz(escurece(cor, 0.78), f, nev);
   const nl = naLuz('#f4f8ff', f, nev * 0.8), ns = naLuz('#b8c4dc', f, nev * 0.8);
   const L = topo.length, mn = topo.reduce((a, b) => Math.min(a, b), Infinity), linhaNeve = mn + (base - mn) * neve;
+  const crista = naLuz(mistura(cor, '#e9dab9', 0.35), f, nev);
+  const fenda = naLuz(escurece(cor, 0.62), f, nev);
   for (let px = 0; px < L; px++) {
     // inclinação medida numa janela larga: > 0 sobe para a direita, a face olha para o sol
     const s = clamp(((topo[Math.max(0, px - 3)]) - (topo[Math.min(L - 1, px + 3)])) / 3, -2, 2);
@@ -136,6 +138,14 @@ function montanha(x, topo, base, cor, neve, f, nev) {
       const d = y - topo[px];
       let cor = c;
       if (Math.abs(s) > 0.15 && d < prof && (d / prof) < 1 - bayer(px, y) * 0.9) cor = s > 0 ? cl : cs;
+      // Veios oblíquos, faces rochosas e luz na crista dão volume além do contorno.
+      const veios = Math.sin(px * .17 + d * .12) + Math.sin(px * .061 - d * .19);
+      if (d > 3 && d < (base - topo[px]) * .8) {
+        if (veios > 1.35 && bayer(px, y) < .65) cor = cs;
+        if (veios < -1.5 && s > -.5) cor = cl;
+        if (Math.abs(Math.sin(px * .11 - d * .18)) < .035 && d > 8) cor = fenda;
+      }
+      if (d < 2 && s > -.3) cor = crista;
       if (neve && y < linhaNeve + Math.sin(px * 0.31) * 2 + Math.sin(px * 0.13 + 1) * 3 + (topo[px] - mn) * 0.15) cor = s >= -0.15 ? nl : ns;
       x.fillStyle = cor; x.fillRect(px, y, 1, 1);
     }
@@ -176,8 +186,10 @@ function arvore(x, px, base, h, [cl, cm, cs], tronco, rnd, betula) {
     let dentro = null;
     for (const b of bolhas) { const dx = (xx + 0.5 - b[0]) / b[2], dy = (y + 0.5 - b[1]) / b[2]; if (dx * dx + dy * dy <= 1) { dentro = [dx, dy]; break; } }
     if (!dentro) continue;
-    const v = dentro[0] + dentro[1] + (hash(xx, y) - 0.5) * 0.7;
+    const grupo = hash(Math.floor(xx / 3), Math.floor(y / 2));
+    const v = dentro[0] + dentro[1] + (grupo - 0.5) * 0.95;
     x.fillStyle = v < -0.55 ? cl : v > 0.45 ? cs : cm; x.fillRect(xx, y, 1, 1);
+    if (v < -.8 && hash(xx, y) > .83) { x.fillStyle = mistura(cl, '#fff3b5', .24); x.fillRect(xx, y, 1, 1); }
   }
 }
 
@@ -279,7 +291,7 @@ function geraFundo() {
   for (const f of FASES) {
     const C = CEUS[f];
     // céu (não anda com a câmera)
-    const c1 = tela(W, HOR + 6); pintaGrad(c1.getContext('2d'), 0, 0, W, HOR + 6, [C.topo, C.meio, C.base], 14, 1.15);
+    const c1 = tela(W, HOR + 6); pintaGrad(c1.getContext('2d'), 0, 0, W, HOR + 6, [C.topo, C.meio, C.base], 24, 1.15);
     ceu[f] = c1;
 
     // montanhas de longe e do meio, cada uma na sua camada
@@ -319,13 +331,13 @@ function geraFundo() {
     // o reflexo é copiado da própria tela a cada quadro (ver desenhaCena); aqui só a tinta da água que vai por cima
     const cr = tela(W, B), xr = cr.getContext('2d');
     const ag = naLuz(P.agua, f, 0.1), agf = naLuz(mistura(P.agua, P.aguaFunda, 0.4), f, 0);
-    for (let r = 2; r < B; r++) { const u = r / B; xr.globalAlpha = 0.32 + u * 0.38; xr.fillStyle = mistura(ag, agf, u); xr.fillRect(0, r, W, 1); }
+    for (let r = 2; r < B; r++) { const u = r / B; xr.globalAlpha = 0.23 + u * 0.40; xr.fillStyle = mistura(ag, agf, u); xr.fillRect(0, r, W, 1); }
     tintaRefl[f] = cr;
 
     // embaixo d'água, o lago inteiro: degradê da água, chão de areia, pedras e seixos (tudo puxado para a cor da água)
     const ca = tela(MUNDO, HU), xa = ca.getContext('2d');
     const a0 = naLuz(mistura(P.agua, '#ffffff', 0.08), f, 0), a1 = naLuz(P.agua, f, 0), a2 = naLuz(mistura(P.agua, P.aguaFunda, 0.6), f, 0), a3 = naLuz(P.aguaFunda, f, 0);
-    pintaGrad(xa, 0, 0, MUNDO, HU, [a0, a1, a2, a3], 12, 0.9);
+    pintaGrad(xa, 0, 0, MUNDO, HU, [a0, a1, a2, a3], 24, 0.9);
     const rf = rngSemente(P.semente * 31 + W), chao = perfil(rf, 9, chaoBase, 4, MUNDO).map(v => Math.min(HU - 3, v));
     const turvo = (c, k = 0.45) => mistura(naLuz(c, f, 0), a3, k);
     const ch = turvo(P.chao), chl = turvo(mistura(P.chao, '#ffffff', 0.2), 0.4), chs = turvo(escurece(P.chao, 0.7), 0.5);
@@ -342,6 +354,34 @@ function geraFundo() {
       }
     }
     for (let i = 0; i < MUNDO / 3; i++) { const px = Math.floor(rf() * MUNDO); xa.fillStyle = rf() < 0.5 ? cpdl : cpds; xa.fillRect(px, chao[px] + 1 + Math.floor(rf() * 3), 1, 1); }
+    // Areia estratificada, conchas e vegetação rasteira entre as pedras.
+    const musgo = turvo(P.alga[1], .52), musgoL = turvo(P.alga[0], .38);
+    for (let i = 0; i < MUNDO / 9; i++) {
+      const px = Math.floor(rf() * MUNDO), py = chao[px], tipo = rf();
+      if (tipo < .55) {
+        for (let j = -2; j <= 2; j++) {
+          const alto = 2 + Math.floor(hash(px + j, 60) * 6);
+          xa.fillStyle = j % 2 ? musgo : musgoL; xa.fillRect(px + j, py - alto + 1, 1, alto);
+          xa.fillStyle = musgo; xa.fillRect(px + j - 1, py - alto + 3, 2, 1);
+        }
+      } else if (tipo < .75) {
+        xa.fillStyle = chs; xa.fillRect(px - 1, py, 5, 1);
+        xa.fillStyle = turvo('#d9c5a0', .45); xa.fillRect(px, py - 1, 3, 1);
+        xa.fillStyle = chl; xa.fillRect(px + 1, py - 2, 1, 1);
+      } else {
+        xa.fillStyle = chs; xa.fillRect(px, py + 3, 3 + Math.floor(rf() * 7), 1);
+      }
+    }
+    // Galhos submersos cobertos de musgo; detalhes estáticos, sem custo por quadro.
+    for (let i = 0; i < MUNDO / 190; i++) {
+      const px = Math.floor(rf() * MUNDO), py = chao[px] - 2, comp = 15 + Math.floor(rf() * 18);
+      for (let j = 0; j < comp; j++) {
+        const yy = py - Math.round(Math.sin(j / comp * 2.5) * 3);
+        xa.fillStyle = turvo('#453e32', .55); xa.fillRect(px + j, yy, 1, 4);
+        xa.fillStyle = j % 4 ? turvo('#847957', .45) : musgo; xa.fillRect(px + j, yy, 1, 1);
+        if (j === Math.floor(comp * .4)) for (let k = 0; k < 5; k++) { xa.fillStyle = turvo('#62583f'); xa.fillRect(px + j + k, yy - k, 1, 2); }
+      }
+    }
     agua[f] = ca;
 
     // neblina da manhã: faixas pontilhadas em volta da margem, com o dobro da largura para correr de lado
@@ -428,31 +468,33 @@ function posBarco(t) {
 /* ===== sprites desenhados à mão (k = contorno) ===== */
 const HEROI = [
   '......kkkkk.....',
-  '.....khhhhhk....',
-  '....khhhhhhhk...',
-  '....kHHHHHHHk...',
-  '..kkbbbbbbbbbkk.',
-  '...kkrrssssk....',
-  '....krSssesk....',
-  '....krSsssssk...',
+  '.....khhhthk....',
+  '....kthhhhthk...',
+  '....kHHHHgHHk...',
+  '..kkbttbbbbbbkk.',
+  '...kkrrsffsk....',
+  '....krSsfesk....',
+  '....krSssfssk...',
   '....kkSsssrk....',
   '.....kkSSkk.....',
-  '...kkccccckk....',
-  '..kcllcccccCk...',
-  '..kcllccccCCkaak',
-  '..kcllccccCCaaak',
-  '..kclllcccCCkkk.',
-  '..kcllccccccCk..',
-  '..kkppppppppkk..',
-  '..kppppppppppk..',
-  '..kppppppppppk..'
+  '...kkclgcCkk....',
+  '..kcllggccCCk...',
+  '..kcllccgcCCkafk',
+  '..kcllccgcCCaafk',
+  '..kcllcCCCgCkkk.',
+  '..kcclccccCCk...',
+  '..kkppppgpppkk..',
+  '..kppPpppppppk..',
+  '..kppPpppppppk..'
 ];
 const CAO = [
-  ['.....k...k...', '....kdk.kdk..', '....kddkddk..', '...kdddddddk.', '...kdddddedk.', '...kddddwwwnk', '...kdddwwwkk.', '..kdddwwwk...', 'k.kddwwwwk...', 'dkddddwwdk...', 'kddddddddk...', '.kdddddddk...', '.kdkddkdkk...'],
-  ['.....k...k...', '....kdk.kdk..', '....kddkddk..', '...kdddddddk.', '...kdddddedk.', '...kddddwwwnk', '...kdddwwwkk.', '..kdddwwwk...', '..kddwwwwk...', 'kkddddwwdk...', 'dddddddddk...', 'kkdddddddk...', '.kdkddkdkk...']
+  ['.....k...k...', '....kdk.kdk..', '....kDdkdDk..', '...kddlddddk.', '...kddlldedk.', '...kdddwwwWnk', '...kDddwWWkk.', '..kdrggwwk...', 'k.kDdwWWwk...', 'dkDddwwwdk...', 'kDdddldddk...', '.kDdlddddk...', '.kwkwwkdkk...'],
+  ['.....k...k...', '....kdk.kdk..', '....kDdkdDk..', '...kddlddddk.', '...kddlldedk.', '...kdddwwwWnk', '...kDddwWWkk.', '..kdrggwwk...', '..kDdwWWwk...', 'kkDddwwwdk...', 'ddDddldddk...', 'kkDdlddddk...', '.kwkwwkdkk...']
 ];
 function sprite(mapa, x0, y0, pal, espelha) {
-  for (let y = 0; y < mapa.length; y++) { const ln = mapa[y]; for (let x = 0; x < ln.length; x++) { const c = pal[ln[x]]; if (c) { cx.fillStyle = c; cx.fillRect(espelha ? x0 + 15 - x : x0 + x, y0 + y, 1, 1); } } }
+  x0 = Math.round(x0); y0 = Math.round(y0);
+  const largura = Math.max(...mapa.map(l => l.length));
+  for (let y = 0; y < mapa.length; y++) { const ln = mapa[y]; for (let x = 0; x < ln.length; x++) { const c = pal[ln[x]]; if (c) { cx.fillStyle = c; cx.fillRect(espelha ? x0 + largura - 1 - x : x0 + x, y0 + y, 1, 1); } } }
 }
 function paletaHeroi(luz) {
   const met = s => E.equip[s] && ITENS[E.equip[s]].metal ? METAIS.find(m => m.id === ITENS[E.equip[s]].metal).cor : null;
@@ -461,7 +503,8 @@ function paletaHeroi(luz) {
   return {
     k: luz('#1a1018'), s: luz('#f0b890'), S: luz('#c8866a'), e: luz('#1a1018'), a: luz('#f0b890'), r: luz('#6a3a24'),
     h: luz(cap || '#e4c068'), H: luz(cap ? escurece(cap, 0.7) : '#a8442c'), b: luz(cap ? escurece(cap, 0.85) : '#c8a048'),
-    c: luz(jaq), l: luz(mistura(jaq, '#ffffff', 0.25)), C: luz(escurece(jaq, 0.7)), p: luz(cal || '#3a5a8a'), o: luz(bot || '#4a2e1c')
+    c: luz(jaq), l: luz(mistura(jaq, '#ffffff', 0.25)), C: luz(escurece(jaq, 0.7)), p: luz(cal || '#3a5a8a'), o: luz(bot || '#4a2e1c'),
+    t: luz(cap ? mistura(cap, '#fff6c6', .4) : '#ffe5a0'), f: luz('#ffdab1'), g: luz('#d7ba7c'), P: luz(cal ? mistura(cal, '#d0e0e5', .3) : '#62839b')
   };
 }
 
@@ -475,12 +518,18 @@ function desenhaPeixe(x0, y0, len, cores, dir, t, tinta, k) {
   for (let i = 0; i < corpo; i++) {
     const u = i / corpo, hh = Math.round(alt * Math.sqrt(Math.max(0, Math.sin(Math.PI * (0.06 + u * 0.82)))));
     for (let j = -hh; j <= hh; j++) P(i, j, j === -hh ? esc : j < -hh * 0.35 ? (j === -hh + 1 ? cl : c1) : j > hh * 0.3 ? c2 : c1);
+    if (len > 11 && i > 2 && i < corpo - 2) {
+      if (i % 3 === 0) P(i, -1, cl);
+      if (i % 3 === 1) P(i, 1, mistura(c1, c2, .45));
+      if (i === Math.round(corpo * .26)) for (let j = 0; j < hh; j++) P(i, j, esc);
+    }
     if (u > 0.32 && u < 0.6) P(i, -hh - 1, c3);
     if (u > 0.55 && u < 0.7 && len > 9) P(i, hh + 1, c3);
   }
   const ond = Math.round(Math.sin(t * 10 + x0 * 0.3) * (len > 10 ? 1 : 0.6));
   for (let i = corpo; i < len; i++) { const s = 1 + Math.round((i - corpo) * 0.9); for (let j = -s; j <= s; j++) if (Math.abs(j) > s - 2 || i === len - 1 || i === corpo) P(i, j + (i > corpo ? ond : 0), c3); }
   P(Math.max(1, Math.round(len * 0.12)), -Math.max(0, Math.round(alt * 0.3)), '#0a0a12');
+  if (len > 13) P(Math.max(1, Math.round(len * .12)) - 1, -Math.max(0, Math.round(alt * .3)), mistura(c2, '#ffffff', .65));
 }
 
 // peixes do ponto atual, sorteados pela raridade (os comuns aparecem mais)
@@ -560,6 +609,7 @@ function desenhaCena(t, dt) {
   const prog = dia ? (h - 5.5) / 14 : ((h + 24 - 19.5) % 24) / 10;
   const ax = Math.round(lerp(W * 0.06, W * 0.94, prog)), ay = Math.round(HOR - 4 - Math.sin(prog * Math.PI) * (HOR * 0.8));
   const halo = hexRgb(ceuF('halo'));
+  VISUAL.ceu(t, F, ax, ay, dia, sol);
   for (const [r, a] of [[26, 0.05], [18, 0.08], [12, 0.14]]) circulo(ax, ay, r, `rgba(${halo},${(a * sol).toFixed(2)})`);
   if (dia) { circulo(ax, ay, 8, ceuF('halo')); circulo(ax, ay, 6, ceuF('sol')); }
   else {
@@ -590,6 +640,12 @@ function desenhaCena(t, dt) {
 
   // a paisagem em camadas: montanhas de longe, do meio (com a cachoeira caindo delas) e a margem
   faixa(fundo.montesLonge, oL);
+  // Uma camada de ar entre os relevos separa os planos sem apagar a floresta.
+  if (VISUAL.completo) {
+    const ar = cx.createLinearGradient(0, HOR * .55, 0, HOR);
+    ar.addColorStop(0, 'rgba(0,0,0,0)'); ar.addColorStop(1, `rgba(${hexRgb(ceuF('nevoa'))},.26)`);
+    cx.fillStyle = ar; cx.fillRect(0, HOR * .55, W, HOR * .45);
+  }
   faixa(fundo.montesMedio, oM);
   if (fundo.cach) {
     const { x, y0, w } = fundo.cach, qx = x - oM;
@@ -708,6 +764,7 @@ function desenhaCena(t, dt) {
   if (comTerra) desenhaTerra(t, noite, 'cima');
   // plantas balançando
   const tintaAgua = luz(P.aguaFunda), corAlga = [luz(P.alga[0]), luz(P.alga[1])];
+  const folhasAgua = [mistura(corAlga[0], tintaAgua, .30), mistura(corAlga[1], tintaAgua, .25)];
   for (const p of fundo.plantas) {
     if (!visivel(p.x)) continue;
     const base = WL + fundo.chao0 + 4;
@@ -715,7 +772,14 @@ function desenhaCena(t, dt) {
       const sx = Math.round(p.x + Math.sin(t * 1.1 + p.f + j * 0.18) * j * 0.09);
       cx.fillStyle = mistura(corAlga[(j >> 2) % 2 ? 1 - p.c : p.c], tintaAgua, 0.25 + j / p.h * 0.1);
       cx.fillRect(sx, base - j, P.gelo ? 2 : 1, 1);
-      if (j % 5 === 3) cx.fillRect(sx + ((j / 5 | 0) % 2 ? 1 : -1), base - j, 1, 1);
+      if (j % 5 === 3) {
+        const dir = (j / 5 | 0) % 2 ? 1 : -1, len = P.gelo ? 5 : 3;
+        for (let k = 1; k <= len; k++) {
+          const ly = base - j - Math.round(k * .6);
+          cx.fillStyle = folhasAgua[1]; cx.fillRect(sx + dir * k, ly, 1, k < len ? 2 : 1);
+          cx.fillStyle = folhasAgua[0]; cx.fillRect(sx + dir * k, ly, 1, 1);
+        }
+      }
     }
   }
   // caules dos nenúfares
@@ -832,6 +896,8 @@ function desenhaCena(t, dt) {
       cx.fillStyle = `rgba(230,255,140,${(a * 0.25).toFixed(2)})`; cx.fillRect(lx - 1, Math.round(p.y), 3, 1); cx.fillRect(lx, Math.round(p.y) - 1, 1, 3);
     }
   }
+  VISUAL.atmosfera(t, F);
+  VISUAL.primeiroPlano(t);
   cx.drawImage(fundo.vin, 0, 0);
 }
 
@@ -848,7 +914,7 @@ function desenhaBarco(bx, by, t, noite) {
   const acesa = noite > 0.2 || pesoFase(QF, 'crep') > 0.5 ? 1 : 0;
   // de noite a lanterna esquenta e clareia o pescador e o cachorro
   const L = c => acesa ? mistura(luz(c), mistura(c, '#ffb060', 0.25), 0.35 * Math.max(noite, 0.5)) : luz(c);
-  sprite(CAO[cauda], bx + 12, by - 18, { k: L('#1a1018'), d: L('#d08e4c'), w: L('#f4e4c8'), e: pisca ? L('#d08e4c') : L('#1a1018'), n: L('#2a1810') });
+  sprite(CAO[cauda], bx + 12, by - 18, { k: L('#20202a'), d: L('#cc9258'), D: L('#946045'), l: L('#e9b779'), w: L('#e7d7b7'), W: L('#fff0d1'), r: L('#9f4d43'), g: L('#e5bf67'), e: pisca ? L('#cc9258') : L('#151c23'), n: L('#24222a') });
   if (!PE.ativo) sprite(HEROI, bx - 6, by - 24 + (Math.floor(t * 0.8) % 2), paletaHeroi(L));
   // motor de popa
   cx.fillStyle = luz('#3a3e44'); cx.fillRect(x0 - 3, by + 1, 2, 9);
@@ -885,8 +951,8 @@ function desenhaBarco(bx, by, t, noite) {
   cx.fillStyle = acesa ? '#ffd27a' : luz('#8a9098'); cx.fillRect(lx - 1, ly + 1, 3, 4);
   if (acesa) {
     cx.fillStyle = '#fff4c8'; cx.fillRect(lx, ly + 2, 1, 2);
+    VISUAL.brilho(lx, ly + 3, 42, '#ffb357', piscaL * .85);
     cx.globalCompositeOperation = 'lighter';
-    for (const [r, a] of [[22, 0.04], [14, 0.06], [8, 0.1], [4, 0.16]]) circulo(lx, ly + 3, r, `rgba(255,170,70,${(a * piscaL).toFixed(3)})`);
     for (let y = WL + 1; y < WL + 14; y += 2) { const w = 3 + Math.round((y - WL) * 0.4); cx.fillStyle = `rgba(255,170,70,${(0.12 * piscaL * (1 - (y - WL) / 14)).toFixed(3)})`; cx.fillRect(lx - w + Math.round(Math.sin(t * 2 + y) * 1.5), y, w * 2, 1); }
     cx.globalCompositeOperation = 'source-over';
   }
@@ -909,6 +975,25 @@ function desenhaBarco(bx, by, t, noite) {
   // proa levantada e borda superior
   cx.fillStyle = luz('#1a1018'); cx.fillRect(x0 - 1, borda - 1, comp - 2, 1); cx.fillRect(x0 + comp - 3, borda - 2, 3, 1);
   cx.fillStyle = luz('#e8c080'); cx.fillRect(x0 + comp - 4, borda - 1, 4, 1);
+  // Madeira gasta, rebites de latão e costuras do casco.
+  for (let i = 0; i < 7; i++) {
+    const x = x0 + 4 + i * 7;
+    cx.fillStyle = L('#ffe1a1'); cx.fillRect(x, borda, 2, 1);
+    cx.fillStyle = luz('#385d69'); cx.fillRect(x + 1, borda + 4, 1, 1);
+    if (i < 5) { cx.fillStyle = luz('#613d31'); cx.fillRect(x + 3, borda + 8, 3, 1); }
+  }
+  // Reflexo escuro do casco e espuma longa quando o motor está em movimento.
+  const velocidade = Math.min(1, Math.abs(velBarco) / VEL_BARCO);
+  for (let r = 0; r < 5; r++) {
+    cx.globalAlpha = .16 * (1 - r / 5); cx.fillStyle = luz('#152f3b');
+    cx.fillRect(x0 + 6 + r * 3 + Math.round(Math.sin(t * 2 + r) * 2), by + 8 + r * 2, 40 - r * 5, 1);
+  }
+  if (velocidade > .1) for (let i = 0; i < 15; i++) {
+    const u = ((t * 1.4 + i / 15) % 1), lado = velBarco > 0 ? -1 : 1;
+    cx.globalAlpha = (1 - u) * velocidade * .45; cx.fillStyle = '#c6e9dd';
+    cx.fillRect(Math.round(bx + lado * (30 + u * 36)), WL - 1 - i % 3, 2 + i % 4, 1);
+  }
+  cx.globalAlpha = 1;
   // a água batendo no casco
   cx.fillStyle = 'rgba(235,248,255,.6)';
   const ond = Math.floor(t * 2) % 2;

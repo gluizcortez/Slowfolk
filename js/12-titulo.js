@@ -54,7 +54,7 @@ function montaTitulo() {
   root.id = 'title';
   root.innerHTML = `
     <div class="shade"></div>
-    <h1 class="logo"><canvas id="ttLogo" role="img" aria-label="Slowfolk"></canvas><span class="tsub">pesque, cozinhe, minere, forje e plante</span></h1>
+    <h1 class="logo"><canvas id="ttLogo" role="img" aria-label="Slowfolk"></canvas><span class="tsub">um lugar para ir devagar.</span></h1>
     <nav class="tmenu" id="ttMain" aria-label="Menu principal">
       <button type="button" id="ttCont" hidden>Continuar</button>
       <button type="button" id="ttNew">Novo jogo</button>
@@ -62,6 +62,7 @@ function montaTitulo() {
       <button type="button" id="ttSom">Som: ligado</button>
     </nav>
     <section class="tnews" id="ttNewsBox" aria-label="Novidades" hidden><h2>Novidades</h2><div class="tnlist" id="ttNewsList"></div><nav class="tmenu"><button type="button" class="back" id="ttNewsBack">Voltar</button></nav></section>
+    <button type="button" class="tvisual ghost sm" data-visual aria-pressed="true">Visual: cinema</button>
     <div class="tver">v${VERSAO}</div>`;
   document.body.appendChild(root);
 

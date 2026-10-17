@@ -26,3 +26,5 @@
 #title .tnlist small{color:var(--dim)}
 #title .tnlist ul{margin:6px 0 12px;padding-left:18px;line-height:1.6}
 #title .tver{position:absolute;right:max(16px,2vw);bottom:max(12px,2vh);color:#b9a68a;text-shadow:2px 2px 0 #000}
+#title .tvisual{position:absolute;right:max(16px,2vw);top:max(16px,2vh);opacity:.85}
+@media (max-width:640px){#title .logo{top:12vh}#title .tsub{font-size:10px}}

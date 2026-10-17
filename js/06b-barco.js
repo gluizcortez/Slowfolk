@@ -218,9 +218,7 @@ function desenhaPier(t, noite) {
   cx.fillStyle = acesa > 0.2 ? '#ffd27a' : L('#8a9098'); cx.fillRect(lx - 1, ly + 1, 3, 4);
   if (acesa > 0.2) {
     const pisca = 0.9 + Math.sin(t * 8) * 0.06 + Math.sin(t * 21) * 0.04;
-    cx.globalCompositeOperation = 'lighter';
-    for (const [r, a] of [[24, 0.035], [15, 0.055], [8, 0.09], [4, 0.14]]) circulo(lx, ly + 3, r, `rgba(255,170,70,${(a * acesa * pisca).toFixed(3)})`);
-    cx.globalCompositeOperation = 'source-over';
+    VISUAL.brilho(lx, ly + 3, 48, '#ffc26d', acesa * pisca);
   }
 }
 
@@ -228,6 +226,12 @@ function desenhaPescadorAPe(t, noite) {
   const D = WL - 5, quadro = PE.anda > 0 ? 1 + Math.floor(PE.anda * 8) % 2 : 0;
   const quente = (PE.x > 0 && PE.x < PIER.balcao + 20) || Math.abs(PE.x - FOGUEIRA.x) < 34;   // o lampião da barraca e a fogueira
   const L = c => noite > 0.3 && quente ? mistura(luz(c), mistura(c, '#ffb060', 0.25), 0.3 * noite) : luz(c);
+  // Sombra projetada no chão; perto do fogo ela se afasta da fonte de luz.
+  const direcao = noite > .3 && quente ? Math.sign(PE.x - (PE.x > 0 ? 56 : FOGUEIRA.x)) : Math.sin((faseAgora().h - 12) / 12 * Math.PI);
+  cx.save(); cx.translate(Math.round(PE.x), D);
+  cx.transform(1, 0, -direcao * .8, .16, 0, 0); cx.globalAlpha = .23;
+  const sombra = Object.fromEntries(Object.keys(paletaHeroi(L)).map(c => [c, '#071a25']));
+  sprite(HEROI_PE[quadro], -8, -20, sombra, PE.dir < 0); cx.restore();
   sprite(HEROI_PE[quadro], Math.round(PE.x) - 8, D - 20, paletaHeroi(L), PE.dir < 0);
 }
 

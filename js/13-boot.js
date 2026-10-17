@@ -6,6 +6,7 @@ E = novoEstado();
 E.auto = true; E.minutos = 17.6 * 60;
 ajustaTela();
 montaTitulo();
+VISUAL.atualizaBotoes();
 
 let ultimo = performance.now(), tempo = 0, salvaT = 0;
 function quadro(agora) {
@@ -23,6 +24,7 @@ function quadro(agora) {
   }
   desenhaCena(tempo, dt);
   desenhaPesca(tempo);
+  VISUAL.apresenta(tempo);
   requestAnimationFrame(quadro);
 }
 requestAnimationFrame(quadro);

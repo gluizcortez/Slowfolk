@@ -257,9 +257,7 @@ function desenhaFogueira(x0, D, t, dt, noite) {
   const vivo = cozinhando ? 1 : 0.55;
   // o brilho do fogo (mais forte de noite)
   const pisca = 0.85 + Math.sin(t * 9) * 0.08 + Math.sin(t * 23) * 0.07;
-  cx.globalCompositeOperation = 'lighter';
-  for (const [r, a] of [[46, 0.03], [28, 0.05], [16, 0.08], [8, 0.12]]) circulo(x, D - 6, r, `rgba(255,150,60,${(a * (0.35 + noite) * vivo * pisca).toFixed(3)})`);
-  cx.globalCompositeOperation = 'source-over';
+  VISUAL.brilho(x, D - 6, 64, '#ffae58', Math.min(1, (.4 + noite) * vivo * pisca));
   // toco com a tábua e a faca, à direita
   const tx = x + 22;
   cx.fillStyle = L('#2a1a10'); cx.fillRect(tx - 6, D - 9, 13, 9);

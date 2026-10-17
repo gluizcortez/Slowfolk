@@ -3,8 +3,18 @@
 /* ================= versão e novidades =================
    MAIOR.MENOR.CORREÇÃO, em 0.x enquanto o jogo está em desenvolvimento. MENOR sobe a cada leva de conteúdo novo,
    CORREÇÃO quando só conserta ou ajusta. Quem publicar sobe VERSAO e põe a entrada nova no topo de NOVIDADES. */
-const VERSAO = '0.5.0';
+const VERSAO = '0.6.0';
 const NOVIDADES = [
+  {
+    v: '0.6.0', data: '17/10/2026', titulo: 'O lago ganha uma nova luz',
+    itens: [
+      'Novas cores do amanhecer à noite, montanhas mais altas, neve nas cristas e florestas com folhas iluminadas.',
+      'A água refrata a paisagem submersa e projeta desenhos de luz no fundo. Reflexos, plantas aquáticas, conchas e troncos dão vida ao lago.',
+      'Luz suave nas lanternas e na fogueira, brilho do sol e da lua, poeira de estrelas e folhas levadas pelo vento.',
+      'Pescador, cachorro, peixes e barco ganharam detalhes, materiais e sombras.',
+      'Escolha Visual: cinema ou Visual: leve no menu e durante o jogo. A escolha fica salva neste navegador.'
+    ]
+  },
   {
     v: '0.5.0', data: '15/10/2026', titulo: 'A fazenda e a fogueira',
     itens: [
